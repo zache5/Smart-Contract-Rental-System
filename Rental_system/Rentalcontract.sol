@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -61,12 +62,12 @@ contract RentalContract is ERC721 {
     // return function for nft, im thinking only owners/business should be able to return, thereby verifying that their physical vehicle has
     // actually been returned.
     function returnNFT(uint256 tokenId) public {
-        require(_vehicleNFT.ownerOf(tokenId) == msg.sender, "RentalContract: only NFT owner can return NFT");
+        // require(_vehicleNFT.ownerOf(tokenId) == msg.sender, "RentalContract: only NFT owner can return NFT");
         require(_rentalDetails[tokenId].rented, "RentalContract: NFT not rented");
-        require(block.timestamp > _rentalDetails[tokenId].endDate, "RentalContract: rental period has not yet ended");
+        // require(block.timestamp > _rentalDetails[tokenId].endDate, "RentalContract: rental period has not yet ended");
 
         // Transfer the NFT back to the owner's wallet
-        _vehicleNFT.transferFrom(address(this), msg.sender, tokenId);
+        // _vehicleNFT.transferFrom(address(this), msg.sender, tokenId); is this needed?
 
         // Reset the rental details
         delete _rentalDetails[tokenId];

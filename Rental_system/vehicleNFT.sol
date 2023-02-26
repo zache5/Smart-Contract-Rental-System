@@ -1,4 +1,4 @@
-
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -16,6 +16,7 @@ contract VehicleNFT is ERC721 {
         string licensePlate;
         uint256 year;
         string stockName;
+        uint dailyPrice;
     }
     // mapping each token id to the vehicle struct data
     mapping(uint256 => Vehicle) private _tokenDetails;
@@ -28,7 +29,8 @@ contract VehicleNFT is ERC721 {
         string memory model,
         string memory licensePlate,
         uint256 year,
-        string memory stockName
+        string memory stockName,
+        uint dailyPrice
     ) public returns (uint256) {
         _tokenIds.increment();
         uint256 newTokenId = _tokenIds.current();
@@ -42,6 +44,7 @@ contract VehicleNFT is ERC721 {
             licensePlate: licensePlate,
             year: year,
             stockName: stockName
+            dailyPrice: dailyPrice
         });
 
         return newTokenId;
