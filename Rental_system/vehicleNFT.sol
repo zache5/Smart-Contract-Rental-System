@@ -65,6 +65,7 @@ contract VehicleNFT is ERC721 {
         );
         return newTokenId;
     }
+
     function getVehicleNFTDetails(uint256 tokenId) public view returns (Vehicle memory) {
         return _tokenDetails[tokenId];
     }
@@ -101,3 +102,59 @@ contract VehicleNFT is ERC721 {
         revert("VehicleNFT: Index out of bounds");
     }
 }
+=======
+    // return the nft details
+    function getVehicleNFTDetails(uint256 tokenId) public view returns (Vehicle memory) {
+        return _tokenDetails[tokenId];
+    }
+    function getStartDate(uint256 tokenId) public view returns (uint256) {
+    require(_exists(tokenId), "VehicleNFT: token does not exist");
+    return _tokenDetails[tokenId].startDate;
+}
+    
+    // will probably need to add streamlit here to get these details
+    // checks for start and end date, also if tokenid exists
+    function setRentalDetails(
+        uint256 tokenId,
+        uint256 startDate,
+        uint256 endDate,
+        address renter
+        ) public {
+            require(_exists(tokenId), "VehicleNFT: token does not exist");
+            require(endDate > startDate, "VehicleNFT: end date must be after start date");
+
+            _tokenDetails[tokenId].startDate = startDate;
+            _tokenDetails[tokenId].endDate = endDate;
+            _tokenDetails[tokenId].renter = renter;
+    }
+    // return renter details, 
+    function getRentalDetails(uint256 tokenId) public view returns (
+            uint256 startDate,
+            uint256 endDate,
+            address renter
+        )
+    {
+    require(_exists(tokenId), "VehicleNFT: token does not exist");
+
+    // set start end and renter details
+    startDate = _tokenDetails[tokenId].startDate;
+    endDate = _tokenDetails[tokenId].endDate;
+    renter = _tokenDetails[tokenId].renter;
+    }
+    function returnNFT(uint256 tokenId) public {
+        require(_exists(tokenId), "VehicleNFT: token does not exist");
+        require(msg.sender == _tokenDetails[tokenId].renter, "VehicleNFT: only renter can return NFT");
+        require(block.timestamp > _tokenDetails[tokenId].endDate, "VehicleNFT: rental period has not yet ended");
+
+        // transfer the NFT back to the owner's wallet
+        _transfer(msg.sender, ownerOf(tokenId), tokenId);
+
+        // reset the rental details
+        _tokenDetails[tokenId].startDate = 0;
+        _tokenDetails[tokenId].endDate = 0;
+        _tokenDetails[tokenId].renter = address(0);
+    }
+
+
+}
+
