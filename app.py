@@ -90,3 +90,22 @@ if st.button("Renter"):
     st.write("You are a renter")
     # Display rental options and allow the renter to select a vehicle to rent
 st.write(os.getenv("NFT_CONTRACT_ADDRESS"))
+
+if st.button("Check Availability"):
+    # Get all vehicles in the fleet
+    vehicles = NFT_contract.functions.getFleet().call()
+    available_vehicles = []
+    # Check each vehicle to see if it has been rented
+    for vehicle_id[] in vehicles:
+        rental_details = rental_contract.functions.getRentalDetails(uint256(vehicle_id)).call()
+        # If the vehicle has not been rented, add it to the list of available vehicles
+        if rental_details[0] == 0:
+            available_vehicles.append(vehicle_id)
+    # Display the list of available vehicles
+    if available_vehicles:
+        st.write("Available vehicles:")
+        for vehicle_id in available_vehicles:
+            vehicle_details = NFT_contract.functions.getVehicleDetails(vehicle_id).call()
+            st.write(f"{vehicle_details[0]} {vehicle_details[1]} {vehicle_details[2]}")
+    else:
+        st.write("Sorry, there are no vehicles currently available for rent.")
