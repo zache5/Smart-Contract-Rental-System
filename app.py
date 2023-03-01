@@ -6,14 +6,12 @@ from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd 
 import datetime 
-
 load_dotenv()
 
 
 ################################################################################
 # Contract Helper function:
 ################################################################################
-
 # Define and connect a new Web3 provider
 w3 = Web3(Web3.HTTPProvider(os.getenv("WEB3_PROVIDER_URI")))
 
@@ -45,21 +43,19 @@ rental_contract = load_contract('./Rental_system/compiled/rental_abi.json', 'REN
 
 # helper function getting all minted nfts on NFT contract
 
-@st.cache(allow_output_mutation=True)
+# @st.cache(allow_output_mutation=True)
 def get_fleet_data():
-    # Get all vehicles in the fleet
-    vehicles = NFT_contract.functions.getFleet().call()
-    # Convert the vehicles list into a DataFrame
-    vehicle_df = pd.DataFrame(vehicles)
-    vehicle_df.index=vehicle_df.index+1
-    vehicle_details_list=[]
-    # get missing vehicle info after first call.
-    for index in vehicle_df.index:
-        vehicle_details = NFT_contract.functions.getVehicleNFTDetails(index).call()
+    # Get total number of vehicles in the fleet
+    total_vehicles = NFT_contract.functions.totalSupply().call()
+    # Create an empty list to store vehicle details
+    vehicle_details_list = []
+    # Loop through the numbers from 1 to total_vehicles and get vehicle details
+    for i in range(1, total_vehicles+1):
+        vehicle_details = NFT_contract.functions.getVehicleNFTDetails(i).call()
         vehicle_details_list.append(vehicle_details)
-    # add columns to all vehicles and return df
-    vehicle_details_df = pd.DataFrame(vehicle_details_list, columns=["VIN", "Make", "Model", "License Plate", "Year", "Stock Name", "Daily Price"])
-    return vehicle_details_df
+    # Convert the vehicle details list into a DataFrame
+    vehicle_df = pd.DataFrame(vehicle_details_list, columns=["VIN", "Make", "Model", "License Plate", "Year", "Stock Name", "Daily Price"])
+    return vehicle_df
 
 
 ################################################################################
@@ -72,8 +68,8 @@ def intro():
     st.write("Are you a business owner or a renter?")
     st.write("Click on corresponding page on the left.")
     
-  
-    st.write(os.getenv("NFT_CONTRACT_ADDRESS"))    
+
+    # st.write(os.getenv("NFT_CONTRACT_ADDRESS"))    
 
 
     if st.button("Check Availability"):
@@ -93,6 +89,7 @@ def business():
     stock_name = st.text_input("Enter the stock name of the vehicle")
     daily_price = int(st.number_input("Enter the daily rental price of the vehicle"))
     
+    counter = 1
     if st.button("Add Vehicle"):
         # Check if the VIN or license plate already exists in the fleet
         # existing_vehicles = NFT_contract.functions.getFleet().call()
@@ -105,8 +102,7 @@ def business():
         # Add the vehicle to the fleet
         tx_hash = NFT_contract.functions.createVehicleNFT(vin, make, model, license_plate, year, stock_name, daily_price).transact({'from': address, 'gas': 1000000})
         receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-        st.write("Transaction receipt mined:")
-        st.write(dict(receipt))
+        tx_hash = receipt.transactionHash.hex()
 
         # Get the ID of the newly minted vehicle
         event_filter = NFT_contract.events.VehicleNFTCreated.createFilter(fromBlock="latest")
@@ -114,10 +110,19 @@ def business():
         new_vehicle_id = events[-1]['args']['tokenId']
 
         # Show the user the newly minted vehicle
-        st.write("Vehicle added to your fleet:")
+        st.write("The Vehicle has been added to your fleet. Here are the details for your vehicle:")
+        supply_number = NFT_contract.functions.totalSupply().call()
+        nft_details = NFT_contract.functions.getVehicleNFTDetails(supply_number).call()
+        st.write("Vehicle details:")
+        st.write("VIN:", nft_details[0])
+        st.write("Stock Name:", nft_details[5])
+
+        st.write(f"Transaction receipt mined. The transaction hash is:{tx_hash}")
+
+        
         # st.image(NFT_contract.functions.tokenURI(new_vehicle_id).call())
-    st.write(os.getenv("NFT_CONTRACT_ADDRESS"))  
-    
+    # st.write(os.getenv("NFT_CONTRACT_ADDRESS"))  
+
 def renter():
     st.title("Welcome to our rental system using smart contracts!")
     
