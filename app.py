@@ -4,6 +4,7 @@ from web3 import Web3
 from pathlib import Path
 from dotenv import load_dotenv
 import streamlit as st
+import pandas as pd 
 
 load_dotenv()
 
@@ -40,6 +41,24 @@ def load_contract(path, addy):
 
 NFT_contract = load_contract('./Rental_system/compiled/vehicleNFT_abi.json', 'NFT_CONTRACT_ADDRESS')
 rental_contract = load_contract('./Rental_system/compiled/rental_abi.json', 'RENTAL_CONTRACT_ADDRESS')
+
+# helper function getting all minted nfts on NFT contract
+
+@st.cache(allow_output_mutation=True)
+def get_fleet_data():
+    # Get all vehicles in the fleet
+    vehicles = NFT_contract.functions.getFleet().call()
+    # Convert the vehicles list into a DataFrame
+    vehicle_df = pd.DataFrame(vehicles)
+    vehicle_df.index=vehicle_df.index+1
+    vehicle_details_list=[]
+    # get missing vehicle info after first call.
+    for index in vehicle_df.index:
+        vehicle_details = NFT_contract.functions.getVehicleNFTDetails(index).call()
+        vehicle_details_list.append(vehicle_details)
+    # add columns to all vehicles and return df
+    vehicle_details_df = pd.DataFrame(vehicle_details_list, columns=["VIN", "Make", "Model", "License Plate", "Year", "Stock Name", "Daily Price"])
+    return vehicle_details_df
 
 
 ################################################################################
@@ -89,6 +108,16 @@ if st.button("Add Vehicle"):
 if st.button("Renter"):
     st.write("You are a renter")
     # Display rental options and allow the renter to select a vehicle to rent
+
+st.write(os.getenv("NFT_CONTRACT_ADDRESS"))    
+    
+
+if st.button("Check Availability"):
+    vehicle_details_df = get_fleet_data()
+    st.write(vehicle_details_df)
+        
+    
+=======
 st.write(os.getenv("NFT_CONTRACT_ADDRESS"))
 
 if st.button("Check Availability"):
