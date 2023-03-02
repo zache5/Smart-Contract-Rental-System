@@ -45,21 +45,20 @@ rental_contract = load_contract('./Rental_system/compiled/rental_abi.json', 'REN
 
 # helper function getting all minted nfts on NFT contract
 
-@st.cache(allow_output_mutation=True)
+# @st.cache(allow_output_mutation=True) - code does not refresh newly added vehicles with this. 
 def get_fleet_data():
-    # Get all vehicles in the fleet
-    vehicles = NFT_contract.functions.getFleet().call()
-    # Convert the vehicles list into a DataFrame
-    vehicle_df = pd.DataFrame(vehicles)
-    vehicle_df.index=vehicle_df.index+1
-    vehicle_details_list=[]
-    # get missing vehicle info after first call.
-    for index in vehicle_df.index:
-        vehicle_details = NFT_contract.functions.getVehicleNFTDetails(index).call()
+    # Get total number of vehicles in the fleet
+    total_vehicles = NFT_contract.functions.totalSupply().call()
+    # Create an empty list to store vehicle details
+    vehicle_details_list = []
+    # Loop through the numbers from 1 to total_vehicles and get vehicle details
+    for i in range(1, total_vehicles+1):
+        vehicle_details = NFT_contract.functions.getVehicleNFTDetails(i).call()
         vehicle_details_list.append(vehicle_details)
-    # add columns to all vehicles and return df
-    vehicle_details_df = pd.DataFrame(vehicle_details_list, columns=["VIN", "Make", "Model", "License Plate", "Year", "Stock Name", "Daily Price"])
-    return vehicle_details_df
+    # Convert the vehicle details list into a DataFrame
+    vehicle_df = pd.DataFrame(vehicle_details_list, columns=["VIN", "Make", "Model", "License Plate", "Year", "Stock Name", "Daily Price"])
+    vehicle_df.index = vehicle_df.index +1
+    return vehicle_df
 
 
 ################################################################################
@@ -71,9 +70,8 @@ def intro():
     st.title("Welcome to our rental system using smart contracts!")
     st.write("Are you a business owner or a renter?")
     st.write("Click on corresponding page on the left.")
-    
   
-    st.write(os.getenv("NFT_CONTRACT_ADDRESS"))    
+    # st.write(os.getenv("NFT_CONTRACT_ADDRESS"))    
 
 
     if st.button("Check Availability"):
@@ -105,8 +103,7 @@ def business():
         # Add the vehicle to the fleet
         tx_hash = NFT_contract.functions.createVehicleNFT(vin, make, model, license_plate, year, stock_name, daily_price).transact({'from': address, 'gas': 1000000})
         receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-        st.write("Transaction receipt mined:")
-        st.write(dict(receipt))
+        tx_hash = receipt.transactionHash.hex()
 
         # Get the ID of the newly minted vehicle
         event_filter = NFT_contract.events.VehicleNFTCreated.createFilter(fromBlock="latest")
@@ -114,9 +111,55 @@ def business():
         new_vehicle_id = events[-1]['args']['tokenId']
 
         # Show the user the newly minted vehicle
-        st.write("Vehicle added to your fleet:")
-        # st.image(NFT_contract.functions.tokenURI(new_vehicle_id).call())
-    st.write(os.getenv("NFT_CONTRACT_ADDRESS"))  
+        st.write("The Vehicle has been added to your fleet. Here are the details for your vehicle:")
+        supply_number = NFT_contract.functions.totalSupply().call()
+        nft_details = NFT_contract.functions.getVehicleNFTDetails(supply_number).call()
+        st.write("Vehicle details:")
+        st.write("VIN:", nft_details[0])
+        st.write("Stock Name:", nft_details[5])
+
+        st.write(f"Transaction receipt mined. The transaction hash is:{tx_hash}")
+        
+     # Check rental status section
+    st.header("Check Rental Status")
+    vehicle_details_df = get_fleet_data()
+    st.write("Here are the details of your fleet:")
+    st.write(vehicle_details_df)
+    vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
+    
+    vehicle_id = vehicle_index
+    
+        
+    if st.button("Check Rental Status"):
+        try:
+            rental_details = rental_contract.functions.getRentalDetails(vehicle_id).call()
+            if rental_details:
+                start_unix, end_unix, renter_address = rental_details
+                start_time = datetime.datetime.fromtimestamp(int(start_unix))
+                end_time = datetime.datetime.fromtimestamp(int(end_unix))
+                st.write("Rental details:")
+                st.write(f"Renter address: {renter_address}")
+                st.write(f"Start time: {start_time}")
+                st.write(f"End time: {end_time}")
+        except Exception as e:
+            st.error(f"Error checking rental status: {e}")
+            return
+        # End Rental Section
+    st.header("End Rental")
+
+    # Create a button to end the rental
+    if st.button("End Rental"):
+        try:
+            # Call the returnNFT() function in the smart contract
+            tx_hash = rental_contract.functions.returnNFT(vehicle_id).transact()
+            st.success("Rental ended successfully!")
+        except Exception as e:
+            st.error(f"Error ending rental: {e}")    
+            
+        
+        
+        
+        
     
 def renter():
     st.title("Welcome to our rental system using smart contracts!")
@@ -144,6 +187,42 @@ def renter():
     st.write(f"Email: {email}")
     st.write(f"Phone Number: {phone_number}")
     st.write(f"Rental Dates: {start_unix} to {end_unix}")
+
+    st.write("Check Availability below!")
+    vehicle_details_df = get_fleet_data()
+    st.write(vehicle_details_df)
+
+    # Allow the user to select a vehicle from the availability list
+    vehicle_index = st.sidebar.selectbox("Select a vehicle:", vehicle_details_df.index)
+    renter_address = st.sidebar.text_input("Enter Ethereum address to pay from:")
+    
+
+    # Get the token ID for the selected vehicle
+    token_id = vehicle_index
+
+    # Set the rental details for the selected vehicle using the setRentalDetails function
+    if st.sidebar.button("Pay for Rental"):
+        # Check if the NFT is already rented
+        is_on_rent=[]
+        try:
+            
+            is_on_rent = rental_contract.functions.getRentalDetails(token_id).call()
+        except Exception as e:
+            pass
+        if is_on_rent:
+            st.error("This vehicle is already on rent, Please select a different vehicle.")
+        else:
+            tx_hash = rental_contract.functions.setRentalDetails(token_id, start_unix, end_unix, renter_address).transact({'from': address, 'gas': 1000000})
+            receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+            tx_hash = receipt.transactionHash.hex()
+            # Show rental confirmation to user
+            st.write("You have successfully rented the following vehicle:")
+            st.write("- Vehicle: ", vehicle_index)
+            st.write("- Rental Address: ", renter_address)
+            st.write("- Rental ID: ", token_id)
+
+        
+    
     
 page_names = {
     'Home Page': intro,
