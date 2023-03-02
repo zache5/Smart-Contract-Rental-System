@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd 
 import datetime 
+import time
 load_dotenv()
 
 
@@ -78,8 +79,6 @@ def intro():
 
 def business():
     st.title('Welcome to our rental system! please add some business information')
-   
-    
     st.write("Lets add some vehicles to your virtual fleet, start by adding the information assiociated with a vehicle")
     vin = st.text_input("Enter the VIN of the vehicle")
     make = st.text_input("Enter the make of the vehicle")
@@ -149,7 +148,52 @@ def renter():
     st.write(f"Email: {email}")
     st.write(f"Phone Number: {phone_number}")
     st.write(f"Rental Dates: {start_unix} to {end_unix}")
-    
+
+    if st.button("Check Availability"):
+        vehicle_details_df = get_fleet_data()
+        st.write(vehicle_details_df)
+
+
+    def purchase_nft(token_id, price):
+        try:
+            # Check if the NFT exists and is available for purchase
+            rental_details = get_rental_details(token_id)
+            if rental_details[0] != 0:
+                st.error("NFT is not available for purchase")
+                return
+
+            # Check if the rental user has enough funds
+            rental_user = w3.eth.accounts[0] # Assumes rental user is using first Ethereum account
+            balance = w3.eth.get_balance(rental_user)
+            if balance < price:
+                st.error("Rental user does not have enough funds")
+                return
+
+            # Transfer the funds to the NFT owner
+            nft_owner = rental_details[1]
+            tx_hash = w3.eth.send_transaction({'to': nft_owner, 'from': rental_user, 'value': price})
+            st.success(f"Transaction sent: {tx_hash.hex()}")
+
+            # Transfer the NFT to the rental user
+            tx_hash = contract.functions.safeTransferFrom(nft_owner, rental_user, token_id, "").transact({'from': rental_user})
+            st.success(f"Transaction sent: {tx_hash.hex()}")
+
+            # Delete the rental details
+            tx_hash = contract.functions.deleteRentalDetails(token_id).transact({'from': rental_user})
+            st.success(f"Transaction sent: {tx_hash.hex()}")
+
+        except InvalidAddress:
+            st.error("Invalid Ethereum address")
+        except InvalidData:
+            st.error("Invalid data")
+    if st.button("Purchase NFT"):
+        token_id = st.number_input("Enter the token ID:", min_value=1)
+            price = st.number_input("Enter the price in wei:", min_value=1)
+        # call the purchase_nft() function with the input values
+        purchase_nft(token_id, price)
+        # display a message to confirm the purchase
+        st.success("NFT purchased successfully!")
+
 page_names = {
     'Home Page': intro,
     'Business': business,
