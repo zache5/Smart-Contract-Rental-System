@@ -127,37 +127,55 @@ def business():
     st.write(vehicle_details_df)
     vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
     
-    vehicle_id = vehicle_index
+    vehicle_id = int(vehicle_index)
     
         
     if st.button("Check Rental Status"):
         try:
             rental_details = rental_contract.functions.getRentalDetails(vehicle_id).call()
             if rental_details:
-                start_unix, end_unix, renter_address = rental_details
+                rentalid,stock_name, start_unix, end_unix, renter_address = rental_details
                 start_time = datetime.datetime.fromtimestamp(int(start_unix))
                 end_time = datetime.datetime.fromtimestamp(int(end_unix))
                 st.write("Rental details:")
+                st.write(f"Rental # : {rentalid}")
+                st.write(f"Vehicle rented : {stock_name}")
                 st.write(f"Renter address: {renter_address}")
                 st.write(f"Start time: {start_time}")
                 st.write(f"End time: {end_time}")
+            else:
+                st.write(f"Vehicle with id {vehicle_id} is not currently rented.")
+                st.write("Please select another vehicle.")
+                return
         except Exception as e:
-            st.error(f"Error checking rental status: {e}")
-            return
+            # st.error(f"Error checking rental status: {e}")
+            st.write(f"Vehicle with id {vehicle_id} is not currently rented.")
+            st.write("Please select another vehicle.")
+            pass
         # End Rental Section
     st.header("End Rental")
 
     # Create a button to end the rental
     if st.button("End Rental"):
+        # Retrieve the rental ID associated with the vehicle
+        rental_id = rental_contract.functions.getRentalDetails(vehicle_id).call()
+
+        # End the rental using the rental ID
         try:
             # Call the returnNFT() function in the smart contract
-            tx_hash = rental_contract.functions.returnNFT(vehicle_id).transact()
+            tx_hash = rental_contract.functions.returnNFT(vehicle_id).transact(({'from': address, 'gas': 1000000}))
             st.success("Rental ended successfully!")
         except Exception as e:
-            st.error(f"Error ending rental: {e}")    
+            st.error(f"Error ending rental: {e}")
             
-        
-        
+#get the stock name for bike of choice.        
+def get_stock_name(token_id):
+        vehicle_df = get_fleet_data()
+        try:
+            stock_name = vehicle_df.loc[vehicle_df.index == token_id]['Stock Name'].values[0]
+            return stock_name
+        except IndexError:
+            return f"No vehicle found with index {token_id}"        
         
         
     
@@ -194,11 +212,14 @@ def renter():
 
     # Allow the user to select a vehicle from the availability list
     vehicle_index = st.sidebar.selectbox("Select a vehicle:", vehicle_details_df.index)
+ 
     renter_address = st.sidebar.text_input("Enter Ethereum address to pay from:")
     
 
     # Get the token ID for the selected vehicle
     token_id = vehicle_index
+    stock_name=get_stock_name(token_id)
+    
 
     # Set the rental details for the selected vehicle using the setRentalDetails function
     if st.sidebar.button("Pay for Rental"):
@@ -212,15 +233,15 @@ def renter():
         if is_on_rent:
             st.error("This vehicle is already on rent, Please select a different vehicle.")
         else:
-            tx_hash = rental_contract.functions.setRentalDetails(token_id, start_unix, end_unix, renter_address).transact({'from': address, 'gas': 1000000})
+            tx_hash = rental_contract.functions.setRentalDetails(token_id,stock_name, start_unix, end_unix, renter_address).transact({'from': address, 'gas': 1000000})
             receipt = w3.eth.waitForTransactionReceipt(tx_hash)
             tx_hash = receipt.transactionHash.hex()
             # Show rental confirmation to user
             st.write("You have successfully rented the following vehicle:")
             st.write("- Vehicle: ", vehicle_index)
             st.write("- Rental Address: ", renter_address)
-            st.write("- Rental ID: ", token_id)
-
+            rental_details = rental_contract.functions.getRentalDetails(token_id).call()
+            st.write("- Rental #: ", rental_details[0])
         
     
     

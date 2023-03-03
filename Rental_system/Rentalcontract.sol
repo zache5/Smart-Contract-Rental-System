@@ -15,6 +15,8 @@ contract RentalContract is ERC721 {
     VehicleNFT private _vehicleNFT;
     // define a struct for rental info
     struct Rental {
+        uint rentalId;
+        string stockName;
         uint256 startDate;
         uint256 endDate;
         address renter;
@@ -26,54 +28,58 @@ contract RentalContract is ERC721 {
     constructor(address vehicleNFTAddress) ERC721("RentalContract", "RENTAL") {
         _vehicleNFT = VehicleNFT(vehicleNFTAddress);
     }
-    // function for setting rental details that will verfiy if rental is available (still need logic for price and value )
+      // function for setting rental details that will verify if rental is available and save rental details to an ERC721 token
     function setRentalDetails(
         uint256 tokenId,
+        string memory stockName,
         uint256 startDate,
         uint256 endDate,
         address renter
     ) public {
-        // require(_vehicleNFT.ownerOf(tokenId) == msg.sender, "RentalContract: only NFT owner can set rental details");
-
         require(endDate > startDate, "RentalContract: end date must be after start date");
         require(!_rentalDetails[tokenId].rented, "RentalContract: NFT already rented");
 
-        _rentalDetails[tokenId] = Rental({
+        uint256 newRentalId = _rentalIds.current() + 1;
+        _rentalIds.increment();
+
+        Rental memory newRental = Rental({
+            rentalId: newRentalId,
+            stockName: stockName,
             startDate: startDate,
             endDate: endDate,
             renter: renter,
             rented: true
         });
 
-        _rentalIds.increment();
-        uint256 newRentalId = _rentalIds.current();
+        _rentalDetails[tokenId] = newRental;
+
+        // Mint the new rental NFT to the renter
         _safeMint(renter, newRentalId);
     }
-    // function for viewing active rentals on select token ids showing who it is rented too. 
-    function getRentalDetails(uint256 tokenId) public view returns (uint256 startDate, uint256 endDate, address renter) {
-       // require(_vehicleNFT.ownerOf(tokenId) == msg.sender || ownerOf(tokenId) == msg.sender, "RentalContract: caller is not authorized");
 
+    // function for viewing active rentals on select token ids showing who it is rented too.
+    function getRentalDetails(uint256 tokenId) public view returns (uint256 rentalId, string memory stockName, uint256 startDate, uint256 endDate, address renter) {
         require(_rentalDetails[tokenId].rented, "RentalContract: NFT not on rent");
 
+        rentalId = _rentalDetails[tokenId].rentalId;
+        stockName = _rentalDetails[tokenId].stockName;
         startDate = _rentalDetails[tokenId].startDate;
         endDate = _rentalDetails[tokenId].endDate;
         renter = _rentalDetails[tokenId].renter;
     }
-    // return function for nft, im thinking only owners/business should be able to return, thereby verifying that their physical vehicle has
-    // actually been returned.
+
+    // function to return an NFT and end the rental period
     function returnNFT(uint256 tokenId) public {
-        // require(_vehicleNFT.ownerOf(tokenId) == msg.sender, "RentalContract: only NFT owner can return NFT");
         require(_rentalDetails[tokenId].rented, "RentalContract: NFT not rented");
         // require(block.timestamp > _rentalDetails[tokenId].endDate, "RentalContract: rental period has not yet ended");
 
         // Transfer the NFT back to the owner's wallet
-        // _vehicleNFT.transferFrom(address(this), msg.sender, tokenId); is this needed?
+        // _vehicleNFT.transferFrom(address(this), msg.sender, tokenId);
+
+        // Burn the rental contract token
+        _burn(_rentalDetails[tokenId].rentalId);
 
         // Reset the rental details
         delete _rentalDetails[tokenId];
-
-        // Burn the rental contract token 
-        // haha guess it makes sense to use a rental token to burn? since this whole rental contract is a contrract/nft in itself 
-        _burn(tokenId);
     }
 }
