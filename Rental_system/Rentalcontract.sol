@@ -69,21 +69,6 @@ contract RentalContract is ERC721 {
     }
 
     // function to return an NFT and end the rental period
-
-
-    function purchaseNFT(uint256 _tokenId, uint256 _price) public payable {
-        require(_exists(_tokenId), "NFT with the given ID does not exist");
-        address owner = ownerOf(_tokenId);
-        require(owner != address(0), "NFT owner address cannot be zero");
-        require(msg.value == _price, "Incorrect amount sent");
-        payable(owner).transfer(msg.value);
-        safeTransferFrom(owner, msg.sender, _tokenId, "");
-        delete _rentalDetails[_tokenId];
-}
-
-    // return function for nft, im thinking only owners/business should be able to return, thereby verifying that their physical vehicle has
-    // actually been returned.
-
     function returnNFT(uint256 tokenId) public {
         require(_rentalDetails[tokenId].rented, "RentalContract: NFT not rented");
         // require(block.timestamp > _rentalDetails[tokenId].endDate, "RentalContract: rental period has not yet ended");
