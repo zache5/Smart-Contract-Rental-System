@@ -60,6 +60,29 @@ def get_fleet_data():
     vehicle_df.index = vehicle_df.index +1
     return vehicle_df
 
+#get the stock name for bike of choice.        
+def get_stock_name(token_id):
+        vehicle_df = get_fleet_data()
+        try:
+            stock_name = vehicle_df.loc[vehicle_df.index == token_id]['Stock Name'].values[0]
+            return stock_name
+        except IndexError:
+            return f"No vehicle found with index {token_id}"   
+        
+@st.cache(allow_output_mutation=True)
+def save_rental_details_to_dataframe(first_name, last_name, email, phone_number, stock_name, rental_id, start_date, end_date):
+    rental_data = {
+        "First Name": [first_name],
+        "Last Name": [last_name],
+        "Email": [email],
+        "Phone Number": [phone_number],
+        "Stock Name": [stock_name],
+        "Rental ID": [rental_id],
+        "Start Date": [start_date],
+        "End Date": [end_date]
+    }
+    rental_df = pd.DataFrame(data=rental_data)
+    return rental_df 
 
 ################################################################################
 # Home page, are you a renter, or a business logic. for the purpose of this, lets maybe do 
@@ -77,7 +100,9 @@ def intro():
     if st.button("Check Availability"):
         vehicle_details_df = get_fleet_data()
         st.write(vehicle_details_df)
-
+################################################################################
+#business layout 
+################################################################################
 def business():
     st.title('Welcome to our rental system! please add some business information')
    
@@ -152,6 +177,7 @@ def business():
             st.write(f"Vehicle with id {vehicle_id} is not currently rented.")
             st.write("Please select another vehicle.")
             pass
+    
         # End Rental Section
     st.header("End Rental")
 
@@ -167,17 +193,11 @@ def business():
             st.success("Rental ended successfully!")
         except Exception as e:
             st.error(f"Error ending rental: {e}")
-            
-#get the stock name for bike of choice.        
-def get_stock_name(token_id):
-        vehicle_df = get_fleet_data()
-        try:
-            stock_name = vehicle_df.loc[vehicle_df.index == token_id]['Stock Name'].values[0]
-            return stock_name
-        except IndexError:
-            return f"No vehicle found with index {token_id}"        
+         
         
-        
+################################################################################
+#renter layout 
+################################################################################        
     
 def renter():
     st.title("Welcome to our rental system using smart contracts!")
@@ -222,6 +242,7 @@ def renter():
     
 
     # Set the rental details for the selected vehicle using the setRentalDetails function
+    renter_info = ','.join([first_name, last_name, email])
     if st.sidebar.button("Pay for Rental"):
         # Check if the NFT is already rented
         is_on_rent=[]
@@ -233,7 +254,7 @@ def renter():
         if is_on_rent:
             st.error("This vehicle is already on rent, Please select a different vehicle.")
         else:
-            tx_hash = rental_contract.functions.setRentalDetails(token_id,stock_name, start_unix, end_unix, renter_address).transact({'from': address, 'gas': 1000000})
+            tx_hash = rental_contract.functions.setRentalDetails(token_id,stock_name, renter_info, start_unix, end_unix, renter_address).transact({'from': address, 'gas': 1000000})
             receipt = w3.eth.waitForTransactionReceipt(tx_hash)
             tx_hash = receipt.transactionHash.hex()
             # Show rental confirmation to user
@@ -242,6 +263,11 @@ def renter():
             st.write("- Rental Address: ", renter_address)
             rental_details = rental_contract.functions.getRentalDetails(token_id).call()
             st.write("- Rental #: ", rental_details[0])
+            #save renter information in dataframe 
+            rental_id = rental_details[0]
+            rental_df = save_rental_details_to_dataframe(first_name, last_name, email, phone_number, stock_name, rental_id, start_date, end_date)
+            st.write(rental_df)
+            
         
     
     
