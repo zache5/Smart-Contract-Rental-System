@@ -153,6 +153,21 @@
 		"outputs": [
 			{
 				"internalType": "uint256",
+				"name": "rentalId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "stockName",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "renterInfo",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
 				"name": "startDate",
 				"type": "uint256"
 			},
@@ -224,24 +239,6 @@
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_tokenId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_price",
-				"type": "uint256"
-			}
-		],
-		"name": "purchaseNFT",
-		"outputs": [],
-		"stateMutability": "payable",
 		"type": "function"
 	},
 	{
@@ -332,6 +329,16 @@
 				"internalType": "uint256",
 				"name": "tokenId",
 				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "stockName",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "renterInfo",
+				"type": "string"
 			},
 			{
 				"internalType": "uint256",
