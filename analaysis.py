@@ -4,6 +4,10 @@ import plotly.express as px
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from st_aggrid import GridUpdateMode, DataReturnMode
+from prophet.plot import plot_plotly
+from plotly import graph_objs as go
+from prophet import Prophet
+
 
 st.title('CSV Analysis')
 st.subheader('Before uploading your CSV file, please make sure that the file has columns name such as "Pickup Date" and "Return Date"')
@@ -66,3 +70,35 @@ if uploaded_file is not None:
     st.text("")
 
     c29, c30, c31 = st.columns([1, 1, 2])
+
+    if st.button('Would you like to run a forecats?'):
+        df = pd.read_csv(uploaded_file)
+        uploaded_file.seek(0)
+        file_container.write(df)
+        df = df.drop(columns=['#','Created At','Return Date', 'License Plate', 'Odometer at Pickup', 'Odometer at Return', 'Total Days'])
+        df.dropna(inplace=True)
+        # Convert columns to datetime
+        df['Pickup Date'] = pd.to_datetime(df['Pickup Date'])
+        # Create new column
+        df['Pickup Count'] = df.groupby(df['Pickup Date'].dt.date)['Pickup Date'].transform('count')
+        # Sorting by Pickup Date
+        df.sort_values('Pickup Date', inplace=True)
+        # Preparing to fit Prophet
+        df_train = df[['Pickup Date','Pickup Count']]
+        df_train = df.rename(columns={'Pickup Date': 'ds', 'Pickup Count': 'y'})
+
+        # Initialize the model
+        model = Prophet()
+        # Fitting the model
+        model.fit(df_train)
+        # Create future dataframe, 30 days ahead
+        future = model.make_future_dataframe(periods=30)
+        forecast = model.predict(future)
+
+        st.write('Forecast Data')
+        fig = plot_plotly(model,forecast)
+        st.plotly_chart(fig)
+
+        st.write('Forecast components')
+        fig2 = model.plot_components(forecast)
+        st.write(fig2)
