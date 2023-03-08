@@ -17,6 +17,7 @@ contract RentalContract is ERC721 {
     struct Rental {
         uint rentalId;
         string stockName;
+        string renterInfo;
         uint256 startDate;
         uint256 endDate;
         address renter;
@@ -32,6 +33,7 @@ contract RentalContract is ERC721 {
     function setRentalDetails(
         uint256 tokenId,
         string memory stockName,
+        string memory renterInfo,
         uint256 startDate,
         uint256 endDate,
         address renter
@@ -45,6 +47,7 @@ contract RentalContract is ERC721 {
         Rental memory newRental = Rental({
             rentalId: newRentalId,
             stockName: stockName,
+            renterInfo: renterInfo,
             startDate: startDate,
             endDate: endDate,
             renter: renter,
@@ -58,11 +61,12 @@ contract RentalContract is ERC721 {
     }
 
     // function for viewing active rentals on select token ids showing who it is rented too.
-    function getRentalDetails(uint256 tokenId) public view returns (uint256 rentalId, string memory stockName, uint256 startDate, uint256 endDate, address renter) {
+    function getRentalDetails(uint256 tokenId) public view returns (uint256 rentalId, string memory stockName,string memory renterInfo, uint256 startDate, uint256 endDate, address renter) {
         require(_rentalDetails[tokenId].rented, "RentalContract: NFT not on rent");
 
         rentalId = _rentalDetails[tokenId].rentalId;
         stockName = _rentalDetails[tokenId].stockName;
+        renterInfo = _rentalDetails[tokenId].renterInfo;
         startDate = _rentalDetails[tokenId].startDate;
         endDate = _rentalDetails[tokenId].endDate;
         renter = _rentalDetails[tokenId].renter;

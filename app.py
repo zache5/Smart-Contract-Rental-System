@@ -6,7 +6,11 @@ from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd 
 import datetime 
-
+import boto3
+import psycopg2 
+import sys
+from io import StringIO
+from io import BytesIO
 load_dotenv()
 
 
@@ -16,6 +20,60 @@ load_dotenv()
 
 # Define and connect a new Web3 provider
 w3 = Web3(Web3.HTTPProvider(os.getenv("WEB3_PROVIDER_URI")))
+s3 = boto3.client('s3',
+                  aws_access_key_id= os.getenv('aws_access_key_id'),
+                  aws_secret_access_key=os.getenv('aws_secret_access_key'))
+def upload_to_s3(bucket_name, file_name, data):
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=data)
+    print(f"File {file_name} uploaded successfully to S3 bucket {bucket_name}.")
+bucket_name = 'rentalinfo'
+
+# functions for uploading and then getting data from the s3 bucket database. 
+def upload_dataframe_to_s3(bucket_name, rental_id, df):
+    file_name = f"Rental # {rental_id}.csv"
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, index=False)
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=csv_buffer.getvalue().encode())
+    print(f"File {file_name} uploaded successfully to S3 bucket {bucket_name}.")
+    
+def query_s3_data(bucket_name, file_name):
+    s3 = boto3.client('s3')
+    obj = s3.get_object(Bucket=bucket_name, Key=file_name)
+    data = obj['Body'].read()
+    df = pd.read_csv(BytesIO(data))
+    return df
+    
+
+
+# param_dic = {
+#     "host"      : 'rentalinfo.ct1eu1efojri.us-west-2.rds.amazonaws.com',
+
+#     "database"  : "api_db",
+#     "user"      : "root",
+#     "password"  : "cryptojedis"
+# }
+# db_url = {'drivername': 'postgresql+psycopg2',
+#         'username': 'root',
+#         'password': 'cryptojedis',
+#         'host': 'rentalinfo.ct1eu1efojri.us-west-2.rds.amazonaws.com',
+#         'port': 5432,
+#         'database': 'api_db'
+# }
+
+# def connect(params_dic):
+#     '''Connect to the PostgreSQL database server''' 
+#     conn = None
+#     try:
+#         # connect to the PostgreSQL server
+#         print('Connecting to the PostgreSQL database...')
+#         conn = psycopg2.connect(**params_dic)
+#     except (Exception, psycopg2.DatabaseError) as error:
+#         print(error)
+#         print("Connection not successful!")
+#         sys.exit(1)
+#     print("Connection Successful!")
+#     return conn
+
 
 accounts = w3.eth.accounts
 address = st.selectbox("Select account", options=accounts)
@@ -49,17 +107,56 @@ rental_contract = load_contract('./Rental_system/compiled/rental_abi.json', 'REN
 def get_fleet_data():
     # Get total number of vehicles in the fleet
     total_vehicles = NFT_contract.functions.totalSupply().call()
-    # Create an empty list to store vehicle details
+    # Create empty lists to store vehicle details and owners
     vehicle_details_list = []
-    # Loop through the numbers from 1 to total_vehicles and get vehicle details
+    vehicle_owners_list = []
+    # Loop through the numbers from 1 to total_vehicles and get vehicle details and owners
     for i in range(1, total_vehicles+1):
         vehicle_details = NFT_contract.functions.getVehicleNFTDetails(i).call()
+        vehicle_owners = NFT_contract.functions.ownerOf(i).call()
         vehicle_details_list.append(vehicle_details)
-    # Convert the vehicle details list into a DataFrame
+        vehicle_owners_list.append(vehicle_owners)
+    # Convert the vehicle details and owners lists into DataFrames
     vehicle_df = pd.DataFrame(vehicle_details_list, columns=["VIN", "Make", "Model", "License Plate", "Year", "Stock Name", "Daily Price"])
-    vehicle_df.index = vehicle_df.index +1
-    return vehicle_df
+    owner_df = pd.DataFrame(vehicle_owners_list, columns=['Owner'])
+    # Combine the two DataFrames and return the result
+    combined_df = pd.concat([vehicle_df, owner_df], axis=1)
+    combined_df.index += 1  # Start index at 1 instead of 0
+    return combined_df
 
+# get current address fleet to see if they have bikes. 
+def get_my_vehicles(address):
+    # Get all vehicle data
+    fleet_data = get_fleet_data()
+    # Filter the vehicles owned by the given address
+    my_vehicles = fleet_data.loc[fleet_data["Owner"] == address]
+    if len(my_vehicles) == 0:
+        st.warning("You currently do not own any vehicles. Please add a vehicle to your fleet.")
+    return my_vehicles
+
+#get the stock name for bike of choice.        
+def get_stock_name(token_id):
+        vehicle_df = get_fleet_data()
+        try:
+            stock_name = vehicle_df.loc[vehicle_df.index == token_id]['Stock Name'].values[0]
+            return stock_name
+        except IndexError:
+            return f"No vehicle found with index {token_id}"   
+        
+@st.cache(allow_output_mutation=True)
+def save_rental_details_to_dataframe(first_name, last_name, email, phone_number, stock_name, rental_id, start_date, end_date):
+    rental_data = {
+        "First Name": [first_name],
+        "Last Name": [last_name],
+        "Email": [email],
+        "Phone Number": [phone_number],
+        "Stock Name": [stock_name],
+        "Rental ID": [rental_id],
+        "Start Date": [start_date],
+        "End Date": [end_date]
+    }
+    rental_df = pd.DataFrame(data=rental_data)
+    return rental_df 
 
 ################################################################################
 # Home page, are you a renter, or a business logic. for the purpose of this, lets maybe do 
@@ -77,11 +174,20 @@ def intro():
     if st.button("Check Availability"):
         vehicle_details_df = get_fleet_data()
         st.write(vehicle_details_df)
-
+################################################################################
+#business layout 
+################################################################################
 def business():
     st.title('Welcome to our rental system! please add some business information')
    
+     # Check rental status section
+    st.header("Check Rental Status")
+    vehicle_details_df = get_my_vehicles(address)
+    st.write("Here are the details of your fleet:")
+    st.write(vehicle_details_df)
+    vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
     
+    vehicle_id = int(vehicle_index)
     st.write("Lets add some vehicles to your virtual fleet, start by adding the information assiociated with a vehicle")
     vin = st.text_input("Enter the VIN of the vehicle")
     make = st.text_input("Enter the make of the vehicle")
@@ -120,38 +226,33 @@ def business():
 
         st.write(f"Transaction receipt mined. The transaction hash is:{tx_hash}")
         
-     # Check rental status section
-    st.header("Check Rental Status")
-    vehicle_details_df = get_fleet_data()
-    st.write("Here are the details of your fleet:")
-    st.write(vehicle_details_df)
-    vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
-    
-    vehicle_id = int(vehicle_index)
-    
         
     if st.button("Check Rental Status"):
+        stock_name = get_stock_name(vehicle_id)
         try:
             rental_details = rental_contract.functions.getRentalDetails(vehicle_id).call()
             if rental_details:
-                rentalid,stock_name, start_unix, end_unix, renter_address = rental_details
+                rentalid, stock_name, renter_info, start_unix, end_unix, renter_address = rental_details
                 start_time = datetime.datetime.fromtimestamp(int(start_unix))
                 end_time = datetime.datetime.fromtimestamp(int(end_unix))
                 st.write("Rental details:")
                 st.write(f"Rental # : {rentalid}")
                 st.write(f"Vehicle rented : {stock_name}")
+                st.write(f"Renter information: {renter_info}")
                 st.write(f"Renter address: {renter_address}")
                 st.write(f"Start time: {start_time}")
                 st.write(f"End time: {end_time}")
+                file_name = f"Rental # {rentalid}.csv"
+                df = query_s3_data(bucket_name, file_name)
+                st.write(df)
             else:
-                st.write(f"Vehicle with id {vehicle_id} is not currently rented.")
+                st.write(f"Vehicle number - {stock_name} - is not currently rented.")
                 st.write("Please select another vehicle.")
-                return
-        except Exception as e:
-            # st.error(f"Error checking rental status: {e}")
-            st.write(f"Vehicle with id {vehicle_id} is not currently rented.")
-            st.write("Please select another vehicle.")
+        except:
+            st.write(f"Vehicle number - {stock_name} - is not currently rented.")
+            st.write("Please select another vehicle. jk")
             pass
+    
         # End Rental Section
     st.header("End Rental")
 
@@ -167,17 +268,11 @@ def business():
             st.success("Rental ended successfully!")
         except Exception as e:
             st.error(f"Error ending rental: {e}")
-            
-#get the stock name for bike of choice.        
-def get_stock_name(token_id):
-        vehicle_df = get_fleet_data()
-        try:
-            stock_name = vehicle_df.loc[vehicle_df.index == token_id]['Stock Name'].values[0]
-            return stock_name
-        except IndexError:
-            return f"No vehicle found with index {token_id}"        
+         
         
-        
+################################################################################
+#renter layout 
+################################################################################        
     
 def renter():
     st.title("Welcome to our rental system using smart contracts!")
@@ -222,6 +317,7 @@ def renter():
     
 
     # Set the rental details for the selected vehicle using the setRentalDetails function
+    renter_info = ','.join([first_name, last_name, email])
     if st.sidebar.button("Pay for Rental"):
         # Check if the NFT is already rented
         is_on_rent=[]
@@ -233,7 +329,7 @@ def renter():
         if is_on_rent:
             st.error("This vehicle is already on rent, Please select a different vehicle.")
         else:
-            tx_hash = rental_contract.functions.setRentalDetails(token_id,stock_name, start_unix, end_unix, renter_address).transact({'from': address, 'gas': 1000000})
+            tx_hash = rental_contract.functions.setRentalDetails(token_id,stock_name, renter_info, start_unix, end_unix, renter_address).transact({'from': address, 'gas': 1000000})
             receipt = w3.eth.waitForTransactionReceipt(tx_hash)
             tx_hash = receipt.transactionHash.hex()
             # Show rental confirmation to user
@@ -242,6 +338,15 @@ def renter():
             st.write("- Rental Address: ", renter_address)
             rental_details = rental_contract.functions.getRentalDetails(token_id).call()
             st.write("- Rental #: ", rental_details[0])
+            
+            #save renter information in dataframe 
+            rental_id = rental_details[0]
+            rental_df = save_rental_details_to_dataframe(first_name, last_name, email, phone_number, stock_name, rental_id, start_date, end_date)
+            st.write(rental_df)
+            # Call the upload_dataframe_to_s3 function
+            upload_dataframe_to_s3('rentalinfo', rental_id, rental_df)
+            
+            
         
     
     
@@ -253,3 +358,5 @@ page_names = {
 
 page = st.sidebar.selectbox("Pages", page_names.keys())
 page_names[page]()
+
+#adding this to make a change, remove if it works
