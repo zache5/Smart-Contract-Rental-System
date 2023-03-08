@@ -9,7 +9,7 @@ from plotly import graph_objs as go
 from prophet import Prophet
 
 
-st.title('CSV Analysis')
+st.title('Business Analysis')
 st.subheader('Before uploading your CSV file, please make sure that the file has columns name such as "Pickup Date" and "Return Date"')
 st.write('Upload your csv file')
 
@@ -19,36 +19,44 @@ uploaded_file = st.file_uploader(
     key="1")
 
 if uploaded_file is not None:
-    file_container = st.expander("Check your uploaded .csv")
+    # file_container = st.expander("Check your uploaded .csv")
     df = pd.read_csv(uploaded_file)
-    uploaded_file.seek(0)
-    file_container.write(df)
+    # uploaded_file.seek(0)
+    # file_container.write(df)
 
     # Get date range for filtering
     min_date = pd.to_datetime(df['Pickup Date']).min().date()
     max_date = pd.to_datetime(df['Return Date']).max().date()
-    selected_date = st.date_input('Select a date:', value=min_date, min_value=min_date, max_value=max_date)
+    start_date = st.date_input('Select start date:', value=min_date, min_value=min_date, max_value=max_date)
+    end_date = st.date_input('Select end date:', value=max_date, min_value=min_date, max_value=max_date)
 
-    # Filter the dataframe by selected date for pickups
-    pickups_df = df[(pd.to_datetime(df['Pickup Date']).dt.date == selected_date)]
-    pickups_count = pickups_df.shape[0]
+    # Filter the dataframe by selected date range for pickups and returns
+    pickups_df = df[(pd.to_datetime(df['Pickup Date']).dt.date >= start_date) & (pd.to_datetime(df['Pickup Date']).dt.date <= end_date)]
+    returns_df = df[(pd.to_datetime(df['Return Date']).dt.date >= start_date) & (pd.to_datetime(df['Return Date']).dt.date <= end_date)]
 
-    # Filter the dataframe by selected date for returns
-    returns_df = df[(pd.to_datetime(df['Return Date']).dt.date == selected_date)]
-    returns_count = returns_df.shape[0]
+    # Calculate counts for pickups and returns for each day in the range
+    date_counts = []
+    for date in pd.date_range(start_date, end_date):
+        pickups_count = pickups_df[(pd.to_datetime(pickups_df['Pickup Date']).dt.date == date)].shape[0]
+        returns_count = returns_df[(pd.to_datetime(returns_df['Return Date']).dt.date == date)].shape[0]
+        date_counts.append((date, pickups_count, returns_count))
 
-    st.subheader(f"Number of mopeds picked on {selected_date}: {pickups_count}")
-    st.subheader(f"Number of mopeds returned on {selected_date}: {returns_count}")
+    # # Create a dataframe with the counts for each day in the range
+    counts_df = pd.DataFrame(date_counts, columns=['Date', 'Pickups', 'Returns'])
+
+    # st.subheader(f"Moped counts for selected date range")
+    # st.write(counts_df)
 
     # Display the chart
-    fig = px.bar(x=["Pickups", "Returns"], y=[pickups_count, returns_count], labels={'x':'', 'y':'Count'})
+    fig = px.line(counts_df, x='Date', y=['Pickups', 'Returns'], labels={'x':'Date', 'y':'Count'})
     st.plotly_chart(fig)
 
+
+
     gb = GridOptionsBuilder.from_dataframe(df)
-    # enables pivoting on all columns, however i'd need to change ag grid to allow export of pivoted/grouped data, however it select/filters groups
-    gb.configure_default_column(enablePivot=True, enableValue=True, enableRowGroup=True)
+    # enables pivoting on all columns, however need to change ag grid to allow export of pivoted/grouped data
     gb.configure_selection(selection_mode="multiple", use_checkbox=True)
-    gb.configure_side_bar()  # side_bar is clearly a typo :) should by sidebar
+    gb.configure_side_bar()  
     gridOptions = gb.build()
 
     response = AgGrid(
