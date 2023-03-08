@@ -6,7 +6,11 @@ from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd 
 import datetime 
-
+import boto3
+import psycopg2 
+import sys
+from io import StringIO
+from io import BytesIO
 load_dotenv()
 
 
@@ -16,6 +20,60 @@ load_dotenv()
 
 # Define and connect a new Web3 provider
 w3 = Web3(Web3.HTTPProvider(os.getenv("WEB3_PROVIDER_URI")))
+s3 = boto3.client('s3',
+                  aws_access_key_id= os.getenv('aws_access_key_id'),
+                  aws_secret_access_key=os.getenv('aws_secret_access_key'))
+def upload_to_s3(bucket_name, file_name, data):
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=data)
+    print(f"File {file_name} uploaded successfully to S3 bucket {bucket_name}.")
+bucket_name = 'rentalinfo'
+
+# functions for uploading and then getting data from the s3 bucket database. 
+def upload_dataframe_to_s3(bucket_name, rental_id, df):
+    file_name = f"Rental # {rental_id}.csv"
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, index=False)
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=csv_buffer.getvalue().encode())
+    print(f"File {file_name} uploaded successfully to S3 bucket {bucket_name}.")
+    
+def query_s3_data(bucket_name, file_name):
+    s3 = boto3.client('s3')
+    obj = s3.get_object(Bucket=bucket_name, Key=file_name)
+    data = obj['Body'].read()
+    df = pd.read_csv(BytesIO(data))
+    return df
+    
+
+
+# param_dic = {
+#     "host"      : 'rentalinfo.ct1eu1efojri.us-west-2.rds.amazonaws.com',
+
+#     "database"  : "api_db",
+#     "user"      : "root",
+#     "password"  : "cryptojedis"
+# }
+# db_url = {'drivername': 'postgresql+psycopg2',
+#         'username': 'root',
+#         'password': 'cryptojedis',
+#         'host': 'rentalinfo.ct1eu1efojri.us-west-2.rds.amazonaws.com',
+#         'port': 5432,
+#         'database': 'api_db'
+# }
+
+# def connect(params_dic):
+#     '''Connect to the PostgreSQL database server''' 
+#     conn = None
+#     try:
+#         # connect to the PostgreSQL server
+#         print('Connecting to the PostgreSQL database...')
+#         conn = psycopg2.connect(**params_dic)
+#     except (Exception, psycopg2.DatabaseError) as error:
+#         print(error)
+#         print("Connection not successful!")
+#         sys.exit(1)
+#     print("Connection Successful!")
+#     return conn
+
 
 accounts = w3.eth.accounts
 address = st.selectbox("Select account", options=accounts)
@@ -122,7 +180,14 @@ def intro():
 def business():
     st.title('Welcome to our rental system! please add some business information')
    
+     # Check rental status section
+    st.header("Check Rental Status")
+    vehicle_details_df = get_my_vehicles(address)
+    st.write("Here are the details of your fleet:")
+    st.write(vehicle_details_df)
+    vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
     
+    vehicle_id = int(vehicle_index)
     st.write("Lets add some vehicles to your virtual fleet, start by adding the information assiociated with a vehicle")
     vin = st.text_input("Enter the VIN of the vehicle")
     make = st.text_input("Enter the make of the vehicle")
@@ -161,16 +226,6 @@ def business():
 
         st.write(f"Transaction receipt mined. The transaction hash is:{tx_hash}")
         
-     # Check rental status section
-    st.header("Check Rental Status")
-    vehicle_details_df = get_my_vehicles(address)
-    st.write("Here are the details of your fleet:")
-    st.write(vehicle_details_df)
-    vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
-    
-    vehicle_id = int(vehicle_index)
-    
-    
         
     if st.button("Check Rental Status"):
         stock_name = get_stock_name(vehicle_id)
@@ -187,12 +242,15 @@ def business():
                 st.write(f"Renter address: {renter_address}")
                 st.write(f"Start time: {start_time}")
                 st.write(f"End time: {end_time}")
+                file_name = f"Rental # {rentalid}.csv"
+                df = query_s3_data(bucket_name, file_name)
+                st.write(df)
             else:
                 st.write(f"Vehicle number - {stock_name} - is not currently rented.")
                 st.write("Please select another vehicle.")
         except:
             st.write(f"Vehicle number - {stock_name} - is not currently rented.")
-            st.write("Please select another vehicle.")
+            st.write("Please select another vehicle. jk")
             pass
     
         # End Rental Section
@@ -285,6 +343,9 @@ def renter():
             rental_id = rental_details[0]
             rental_df = save_rental_details_to_dataframe(first_name, last_name, email, phone_number, stock_name, rental_id, start_date, end_date)
             st.write(rental_df)
+            # Call the upload_dataframe_to_s3 function
+            upload_dataframe_to_s3('rentalinfo', rental_id, rental_df)
+            
             
         
     
