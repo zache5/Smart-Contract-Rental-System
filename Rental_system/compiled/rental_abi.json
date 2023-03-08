@@ -84,6 +84,16 @@
 				"internalType": "uint256",
 				"name": "tokenId",
 				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "endDate",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "startDate",
+				"type": "uint256"
 			}
 		],
 		"name": "returnNFT",
@@ -173,11 +183,6 @@
 				"type": "string"
 			},
 			{
-				"internalType": "string",
-				"name": "renterInfo",
-				"type": "string"
-			},
-			{
 				"internalType": "uint256",
 				"name": "startDate",
 				"type": "uint256"
@@ -186,16 +191,11 @@
 				"internalType": "uint256",
 				"name": "endDate",
 				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "renter",
-				"type": "address"
 			}
 		],
 		"name": "setRentalDetails",
 		"outputs": [],
-		"stateMutability": "nonpayable",
+		"stateMutability": "payable",
 		"type": "function"
 	},
 	{
@@ -245,6 +245,10 @@
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
 	},
 	{
 		"inputs": [
@@ -302,11 +306,6 @@
 			{
 				"internalType": "string",
 				"name": "stockName",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "renterInfo",
 				"type": "string"
 			},
 			{
