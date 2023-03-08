@@ -44,37 +44,6 @@ def query_s3_data(bucket_name, file_name):
     return df
     
 
-
-# param_dic = {
-#     "host"      : 'rentalinfo.ct1eu1efojri.us-west-2.rds.amazonaws.com',
-
-#     "database"  : "api_db",
-#     "user"      : "root",
-#     "password"  : "cryptojedis"
-# }
-# db_url = {'drivername': 'postgresql+psycopg2',
-#         'username': 'root',
-#         'password': 'cryptojedis',
-#         'host': 'rentalinfo.ct1eu1efojri.us-west-2.rds.amazonaws.com',
-#         'port': 5432,
-#         'database': 'api_db'
-# }
-
-# def connect(params_dic):
-#     '''Connect to the PostgreSQL database server''' 
-#     conn = None
-#     try:
-#         # connect to the PostgreSQL server
-#         print('Connecting to the PostgreSQL database...')
-#         conn = psycopg2.connect(**params_dic)
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         print(error)
-#         print("Connection not successful!")
-#         sys.exit(1)
-#     print("Connection Successful!")
-#     return conn
-
-
 accounts = w3.eth.accounts
 address = st.selectbox("Select account", options=accounts)
 
