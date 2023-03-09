@@ -16,6 +16,14 @@ import psycopg2
 import sys
 from io import StringIO
 from io import BytesIO
+import plotly.express as px
+from st_aggrid.grid_options_builder import GridOptionsBuilder
+from st_aggrid import GridUpdateMode, DataReturnMode
+from plotly import graph_objs as go
+from st_aggrid import AgGrid
+from prophet import Prophet
+
+from prophet.plot import plot_plotly
 
 
 load_dotenv()
@@ -26,7 +34,7 @@ load_dotenv()
 
 # Define and connect a new Web3 provider
 w3 = Web3(Web3.HTTPProvider(os.getenv("WEB3_PROVIDER_URI")))
-
+st. set_page_config(layout="wide")
 s3 = boto3.client('s3',
                   aws_access_key_id= os.getenv('aws_access_key_id'),
                   aws_secret_access_key=os.getenv('aws_secret_access_key'))
@@ -162,21 +170,46 @@ def intro():
     st.write("Welcome to our revolutionary new platform for renting mopeds! We're excited to introduce a cutting-edge solution that allows businesses to quickly and easily list their mopeds for rent, and renters to book directly from them. Our platform is powered by smart contract technology and blockchain, ensuring a fully decentralized, trustless transaction that's executed entirely through code. With our platform, business owners can easily add their stock of mopeds to our site and renters can browse and book rentals directly. Whether you're a business owner looking to monetize your mopeds or a renter in search of a hassle-free rental experience, our platform has everything you need. Simply head to the business tab to add your stock or the renter tab to browse rentals and start renting today!")
     col1, col2 = st.columns([3,3])
     with col1:
+        image = open("./Images/front_page.jpg", "rb").read()
+        st.caption('Come Ride around oahu and experience the island on two wheels!')
+        st.image(image, width=650, use_column_width=False, output_format='JPEG')
+        st.caption('Photo is taken by Makapuu lighthouse beach park.')
         st.title("What is a smart contract and Why are we using this technology?")
-        st.write(""""A smart contract is a self-executing computer program that automatically enforces the rules and regulations of an agreement. It allows parties to enter into a contract without the need for intermediaries such as lawyers or banks, reducing the time and costs involved in creating and enforcing traditional contracts.
-In the context of a rental system, a smart contract can be used to automate the process of creating, signing, and enforcing rental agreements between parties. By using a smart contract, rental terms can be specified in code and executed automatically when certain conditions are met.
+        st.write("""A smart contract is a self-executing computer program that automatically enforces the rules and regulations of an agreement. It allows parties to enter into a contract without the need for intermediaries such as lawyers or banks, reducing the time and costs involved in creating and enforcing traditional contracts.
+In the context of a rental system, a smart contract can be used to automate the process of creating, signing, and enforcing rental agreements between parties. 
+                                
+                                
+                                
+By using a smart contract, rental terms can be specified in code and executed automatically when certain conditions are met.
 One advantage of using smart contracts in a rental system is the ability to ensure that both parties adhere to the terms of the agreement. For example, the smart contract can hold a renter's security deposit in escrow and automatically release it back to the renter once the rental period has ended and the moped is returned undamaged. This ensures that the rental company is compensated for any damages, while also protecting the renter from being unfairly charged for damages they did not cause.
+
+
+
 Another advantage of using smart contracts in a rental system is the ability to use non-fungible tokens (NFTs) to represent ownership of the rented items. NFTs are unique digital assets that are verified on a blockchain network and can be used to represent ownership of physical or digital assets. By using NFTs to represent ownership of rented items, it becomes easier to track ownership and transfer of the items between parties. This can help prevent disputes and simplify the process of returning rented items at the end of the rental period.""")
     with col2:
         st.title("Why Should You Use This Platform?")
-        st.write("When it comes to renting a moped, there are many benefits to using a platform that utilizes smart contract and blockchain technology. With this advanced technology, there is no need to rely on intermediaries, which means the transaction process is seamless and trustless. This also means the transaction is fast, efficient, and completely transparent. By using our platform, you can have peace of mind knowing that your transaction is secure and your personal information is protected. Plus, with a 10% discount compared to renting in person, you can save money while enjoying the convenience of renting from the comfort of your own home. So why settle for a traditional rental process when you can experience the future of renting with our smart contract and blockchain technology platform?")
-    st.caption('Come Ride around oahu and experience the island on two wheels!')
-    image = open("./Images/front_page.jpg", "rb").read()
-    st.image(image, use_column_width=True, output_format='JPEG',)
-    st.caption('Photo is taken out by Makapuu lighthouse beach park.')
+        st.write("When it comes to renting a moped, there are many benefits to using a platform that utilizes smart contract and blockchain technology. With this advanced technology, there is no need to rely on intermediaries, which means the transaction process is seamless and trustless. This also means the transaction is fast, efficient, and completely transparent. By using our platform, you can have peace of mind knowing that your transaction is secure and your personal information is protected. Plus, with a 10% discount compared to renting in person, you can save money while enjoying the convenience of renting from the comfort of your own home. So why settle for a traditional rental process when you can experience the future of renting with our smart contract and blockchain technology platform?")   
+        image = open("./Images/contract.jpg", "rb").read()
+        st.image(image, width=800, use_column_width=False, output_format='JPEG')
+        st.title('Subscribe to stay updated, leave us a message!')
+        contact_form = """
+        <form action="https://formsubmit.co/zacheras@gmail.com" method="POST">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="text" name="name" placeholder="Your name" required>
+        <input type="email" name="email" placeholder="Your email" required>
+        <textarea name="message" placeholder="Your message here"></textarea>
+        <button type="submit">Send</button>
+        </form>
+"""
+        st.markdown(contact_form, unsafe_allow_html=True)
 
-    
+        #Use Local CSS File
+        def local_css(file_name):
+            with open(file_name) as f:
+                st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+
+        local_css("./style/style.css")
 
 ################################################################################
 #business layout 
@@ -235,45 +268,46 @@ def business():
                 pass
 
                 
-        st.title('Add The Moped Vehicle Information Below!')
-        st.write("Lets add some vehicles to your virtual fleet, start by adding the information assiociated with a vehicle")
-        vin = st.text_input("Enter the VIN of the vehicle")
-        make = st.text_input("Enter the make of the vehicle")
-        model = st.text_input("Enter the model of the vehicle")
-        license_plate = st.text_input("Enter the license plate of the vehicle")
-        year = st.number_input("Enter the year of the vehicle", min_value=1900, max_value=2100)
-        stock_name = st.text_input("Enter the stock name of the vehicle")
-        daily_price = int(st.number_input("Enter the daily rental price of the vehicle"))
+        with st.form("add_vehicle_form"):
+            st.title('Add The Moped Vehicle Information Below!')
+            st.write("Lets add some vehicles to your virtual fleet. Start by adding the information assiociated with a vehicle")
+            vin = st.text_input("Enter the VIN of the vehicle")
+            make = st.text_input("Enter the make of the vehicle")
+            model = st.text_input("Enter the model of the vehicle")
+            license_plate = st.text_input("Enter the license plate of the vehicle")
+            year = st.number_input("Enter the year of the vehicle", min_value=1900, max_value=2100)
+            stock_name = st.text_input("Enter the stock name of the vehicle")
+            daily_price = int(st.number_input("Enter the daily rental price of the vehicle in WEI (10^19 ETH) Value"))
+            
+            submitted = st.form_submit_button("Add Vehicle")
+            if submitted:
+                # # Check if the VIN or license plate already exists in the fleet
+                # # existing_vehicles = NFT_contract.functions.getFleet().call()
+                # for vehicle_id in vehicle_details_df:
+                #     vehicle_details = NFT_contract.functions.getVehicleDetails(vehicle_id).call()
+                #     if vehicle_details[0] == vin or vehicle_details[3] == license_plate:
+                #         st.error("Error: A vehicle with the same VIN or license plate already exists in the fleet.")
 
-        if st.button("Add Vehicle"):
-            # Check if the VIN or license plate already exists in the fleet
-            # existing_vehicles = NFT_contract.functions.getFleet().call()
-            for vehicle_id in vehicle_details_df:
-                vehicle_details = NFT_contract.functions.getVehicleDetails(vehicle_id).call()
-                if vehicle_details[0] == vin or vehicle_details[3] == license_plate:
-                     st.error("Error: A vehicle with the same VIN or license plate already exists in the fleet.")
 
+                    # Add the vehicle to the fleet
+                    tx_hash = NFT_contract.functions.createVehicleNFT(vin, make, model, license_plate, year, stock_name, daily_price).transact({'from': address, 'gas': 1000000})
+                    receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+                    tx_hash = receipt.transactionHash.hex()
 
-            # Add the vehicle to the fleet
-            tx_hash = NFT_contract.functions.createVehicleNFT(vin, make, model, license_plate, year, stock_name, daily_price).transact({'from': address, 'gas': 1000000})
-            receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-            tx_hash = receipt.transactionHash.hex()
+                    # Get the ID of the newly minted vehicle
+                    event_filter = NFT_contract.events.VehicleNFTCreated.createFilter(fromBlock="latest")
+                    events = event_filter.get_all_entries()
+                    new_vehicle_id = events[-1]['args']['tokenId']
 
-            # Get the ID of the newly minted vehicle
-            event_filter = NFT_contract.events.VehicleNFTCreated.createFilter(fromBlock="latest")
-            events = event_filter.get_all_entries()
-            new_vehicle_id = events[-1]['args']['tokenId']
+                    # Show the user the newly minted vehicle
+                    st.write("The Vehicle has been added to your fleet. Here are the details for your vehicle:")
+                    supply_number = NFT_contract.functions.totalSupply().call()
+                    nft_details = NFT_contract.functions.getVehicleNFTDetails(supply_number).call()
+                    st.write("Vehicle details:")
+                    st.write("VIN:", nft_details[0])
+                    st.write("Stock Name:", nft_details[5])
 
-            # Show the user the newly minted vehicle
-            st.write("The Vehicle has been added to your fleet. Here are the details for your vehicle:")
-            supply_number = NFT_contract.functions.totalSupply().call()
-            nft_details = NFT_contract.functions.getVehicleNFTDetails(supply_number).call()
-            st.write("Vehicle details:")
-            st.write("VIN:", nft_details[0])
-            st.write("Stock Name:", nft_details[5])
-
-            st.write(f"Transaction receipt mined. The transaction hash is:{tx_hash}")
-
+                    st.write(f"Transaction receipt mined. The transaction hash is:{tx_hash}")
     with col2:
         st.header("Check available vehicles below")
         if not vehicle_details_df.empty:
@@ -283,10 +317,10 @@ def business():
         else :
             pass
         
-        st.header("3 Easy Steps To Add Your Mopeds to the Fleet:")
-        st.write("Step 1: Add in the information about each moped in the respective text box.")
-        st.write("Step 2: View the details of your fleet and 'Check Rental Status' button to see if the vehicle is currently being rented, and if it is, then by who and for how long.")
-        st.write("Step 3: Once the vehicle has returned to the store sucessfully in person, then you may click the 'End Rental' button, and the vehicle will then be up for sale again and the ethereum payment will go through.")   
+        st.header("3 Easy Steps To Manage and Add Vehicles to The Fleet:")
+        st.write("Step 1: Add in the information about the moped you want to add in the respective text box and click the 'Add Vehicle' button.")
+        st.write("Step 2: View the details of the available mopeds in the top right corner and view your whole fleet right below that!")
+        st.write("Step 3: At the top of the page, view the information about the renter if your vehicle is being rented, and once it gets returned safely on the designated return date, click the 'End Rental' button receive immediate payment!")   
         
 ################################################################################
 #renter layout 
@@ -299,45 +333,50 @@ def renter():
         vehicle_details_df = get_fleet_data()
         # Allow the user to select a vehicle from the availability list
         vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
-        st.write("Please enter your information below to get started.")
-        # Get renter information
-        first_name = st.text_input("First Name")
-        last_name = st.text_input("Last Name")
-        email = st.text_input("Email")
-        phone_number = st.text_input("Phone Number")
-        
-        st.write("Please select the dates you would like to rent:")
-        
-        # Display a calendar for selecting rental dates
-        start_date = st.date_input("Start Date")
-        end_date = st.date_input("End Date")
-        
-        # Convert selected dates to Unix timestamps
-        start_unix = int(datetime.datetime.combine(start_date, datetime.time.min).timestamp())
-        end_unix = int(datetime.datetime.combine(end_date, datetime.time.min).timestamp())
-        
-        # renter_address = st.sidebar.text_input("Enter Ethereum address to pay from:")
-        
+        with st.form("rental_form"):
+            st.write("Please enter your information below to get started.")
+            # Get renter information
+            first_name = st.text_input("First Name")
+            last_name = st.text_input("Last Name")
+            email = st.text_input("Email")
+            phone_number = st.text_input("Phone Number")
 
-        # Get the token ID for the selected vehicle
-        token_id = vehicle_index
-        stock_name=get_stock_name(token_id)
-        
+            st.write("Please select the dates you would like to rent:")
 
-        # Set the rental details for the selected vehicle using the setRentalDetails function
-        renter_info = ','.join([first_name, last_name, email])
+            # Display a calendar for selecting rental dates
+            start_date = st.date_input("Start Date")
+            end_date = st.date_input("End Date")
+
+            # Convert selected dates to Unix timestamps
+            start_unix = int(datetime.datetime.combine(start_date, datetime.time.min).timestamp())
+            end_unix = int(datetime.datetime.combine(end_date, datetime.time.min).timestamp())
+
+            
+
+            # Get the token ID for the selected vehicle
+            token_id = vehicle_index
+            stock_name = get_stock_name(token_id)
+
+            # Set the rental details for the selected vehicle using the setRentalDetails function
+            renter_info = ','.join([first_name, last_name, email])
+
+            submitted = st.form_submit_button("Submit")
+            if submitted:
+                # Process the rental request
+                st.write("Your information has been saved. Click the pay button to continue!")
+
                 
     with col2:
         st.header("Check Availability below!")
         onrent, available_df = get_rental_status(vehicle_details_df)
         st.write(available_df)
         st.header("5 Easy Steps To Rent a Moped:")
-        st.write('Step 1: Fill in your contact details')
-        st.write("Step 2: Select the start and end date for your rental")
-        st.write("Step 3: View the available Mopeds to rent from")
-        st.write("Step 4: Refer to the sidebar and select the vehicle number you want to rent")
-        st.write("Input your ethereum wallet address and click pay for rental!")
-        st.caption("Once you make the payment, you will see the confirmation in your wallet and the moped will be reserved for you!")
+        st.write("Step 1: View the available Mopeds to rent from and select the vehicle number you want to rent")
+        st.write('Step 2: Fill in your contact details')
+        st.write("Step 3: Select the start and end date for your rental")
+        st.write("Step 4: Sumbit the form ensuring that all of your information was entered correctly")
+        st.write("Step 5: View the price in ETH that you are going to pay and click the 'Pay for Rental' button to rent the moped!")
+        
         rental_days = (end_unix-start_unix)/86400
         daily_price= NFT_contract.functions.dailyPricevalue(vehicle_index).call()
         rental_cost = int(rental_days * daily_price)
@@ -391,56 +430,52 @@ def renter():
     
         
 def analysis():
+    col1, col2 = st.columns([3,1])
+    with col1:
+        st.title('Business Analysis')
+        st.write("Welcome to our data analysis and machine learning section, designed to provide businesses with the necessary tools to make informed decisions and optimize operations. Through our platform, you can easily import a CSV file containing past rental activity data and analyze it in-depth, gaining valuable insights into your business performance. Our cutting-edge machine learning simulations can also be utilized to run predictions and simulations, allowing you to better prepare for the future. Our commitment to advanced data analysis and machine learning techniques is aimed at helping businesses stay ahead of the curve and thrive in today's ever-changing marketplace. Get started below!")
+    with col2:
+        image = open("./Images/ai.jpg", "rb").read()
+        st.image(image, width=350, use_column_width=False, output_format='JPEG')
+    
     st.title('Business Analysis')
     st.subheader('Before uploading your CSV file, please make sure that the file has columns name such as "Pickup Date" and "Return Date"')
     st.write('Upload your csv file')
-
-
+    st.write('We apologize for any inconvenience. It might take a few seconds to load, depending on your file size. We apreciate your patience')
     uploaded_file = st.file_uploader(
         "",
         key="1")
-
     if uploaded_file is not None:
-        # file_container = st.expander("Check your uploaded .csv")
+        file_container = st.expander("Check your uploaded .csv")
         df = pd.read_csv(uploaded_file)
-        # uploaded_file.seek(0)
-        # file_container.write(df)
-
+        uploaded_file.seek(0)
+        file_container.write(df)
         # Get date range for filtering
         min_date = pd.to_datetime(df['Pickup Date']).min().date()
         max_date = pd.to_datetime(df['Return Date']).max().date()
         start_date = st.date_input('Select start date:', value=min_date, min_value=min_date, max_value=max_date)
         end_date = st.date_input('Select end date:', value=max_date, min_value=min_date, max_value=max_date)
-
         # Filter the dataframe by selected date range for pickups and returns
         pickups_df = df[(pd.to_datetime(df['Pickup Date']).dt.date >= start_date) & (pd.to_datetime(df['Pickup Date']).dt.date <= end_date)]
         returns_df = df[(pd.to_datetime(df['Return Date']).dt.date >= start_date) & (pd.to_datetime(df['Return Date']).dt.date <= end_date)]
-
         # Calculate counts for pickups and returns for each day in the range
         date_counts = []
         for date in pd.date_range(start_date, end_date):
             pickups_count = pickups_df[(pd.to_datetime(pickups_df['Pickup Date']).dt.date == date)].shape[0]
             returns_count = returns_df[(pd.to_datetime(returns_df['Return Date']).dt.date == date)].shape[0]
             date_counts.append((date, pickups_count, returns_count))
-
         # # Create a dataframe with the counts for each day in the range
         counts_df = pd.DataFrame(date_counts, columns=['Date', 'Pickups', 'Returns'])
-
         # st.subheader(f"Moped counts for selected date range")
         # st.write(counts_df)
-
         # Display the chart
         fig = px.line(counts_df, x='Date', y=['Pickups', 'Returns'], labels={'x':'Date', 'y':'Count'})
         st.plotly_chart(fig)
-
-
-
         gb = GridOptionsBuilder.from_dataframe(df)
         # enables pivoting on all columns, however need to change ag grid to allow export of pivoted/grouped data
         gb.configure_selection(selection_mode="multiple", use_checkbox=True)
-        gb.configure_side_bar()  
+        gb.configure_side_bar()
         gridOptions = gb.build()
-
         response = AgGrid(
         df,
         gridOptions=gridOptions,
@@ -449,18 +484,12 @@ def analysis():
         data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
         fit_columns_on_grid_load=False,
         )
-
         df = pd.DataFrame(response["selected_rows"])
-
         st.subheader("Filtered data will appear below ")
         st.text("")
-
         st.table(df)
-
         st.text("")
-
         c29, c30, c31 = st.columns([1, 1, 2])
-
         if st.button('Would you like to run a forecats?'):
             df = pd.read_csv(uploaded_file)
             uploaded_file.seek(0)
@@ -476,7 +505,6 @@ def analysis():
             # Preparing to fit Prophet
             df_train = df[['Pickup Date','Pickup Count']]
             df_train = df.rename(columns={'Pickup Date': 'ds', 'Pickup Count': 'y'})
-
             # Initialize the model
             model = Prophet()
             # Fitting the model
@@ -484,15 +512,13 @@ def analysis():
             # Create future dataframe, 30 days ahead
             future = model.make_future_dataframe(periods=30)
             forecast = model.predict(future)
-
             st.write('Forecast Data')
             fig = plot_plotly(model,forecast)
             st.plotly_chart(fig)
-
             st.write('Forecast components')
             fig2 = model.plot_components(forecast)
             st.write(fig2)
-    
+        
 page_names = {
     'Home Page': intro,
     'Business': business,
