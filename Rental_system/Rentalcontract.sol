@@ -87,19 +87,11 @@ contract RentalContract is ERC721 {
     // function to return an NFT and end the rental period
     function returnNFT(uint256 tokenId, uint256 endDate, uint256 startDate) public {
         require(_rentalDetails[tokenId].rented, "RentalContract: NFT not rented");
-<<<<<<< HEAD
-        // require(msg.sender == _vehicleNFT.ownerOf(tokenId), "You are not the Owner of this vehicle!");
-        // Transfer the NFT back to the owner's wallet
-        // calculate total rental fee based on duration and daily price
-        uint256 rentalDuration = endDate - startDate;
-        uint256 totalRentalFee = rentalDuration * _vehicleNFT.dailyPricevalue(tokenId);
-=======
         require(msg.sender == _vehicleNFT.ownerOf(tokenId), "You are not the Owner of this vehicle!");
         // Transfer the NFT back to the owner's wallet
         // calculate total rental fee based on duration and daily price
         uint256 rentalDays = endDate.sub(startDate).div(86400); // Divide by number of seconds in a day
         uint256 totalRentalFee = rentalDays * _vehicleNFT.dailyPricevalue(tokenId);
->>>>>>> b98551c704ef579d574ea9ac7f056fdfb79fd5db
         // transfer rental fee to contract
         address payable vehicleOwner = payable(_vehicleNFT.ownerOf(tokenId));
         vehicleOwner.transfer(totalRentalFee);
@@ -110,12 +102,5 @@ contract RentalContract is ERC721 {
     }
     receive() external payable {
     // code to handle received ether
-<<<<<<< HEAD
-}
-
-
-}
-=======
     }   
 }
->>>>>>> b98551c704ef579d574ea9ac7f056fdfb79fd5db
