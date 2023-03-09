@@ -108,4 +108,8 @@ contract VehicleNFT is ERC721 {
         }
         revert("VehicleNFT: Index out of bounds");
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b98551c704ef579d574ea9ac7f056fdfb79fd5db

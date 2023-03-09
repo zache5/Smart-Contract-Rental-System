@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd 
 import datetime 
+<<<<<<< HEAD
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,6 +16,13 @@ from math import sqrt
 import streamlit as st
 import plotly.graph_objs as go
 
+=======
+import boto3
+import psycopg2 
+import sys
+from io import StringIO
+from io import BytesIO
+>>>>>>> b98551c704ef579d574ea9ac7f056fdfb79fd5db
 load_dotenv()
 
 
@@ -24,7 +32,33 @@ load_dotenv()
 
 # Define and connect a new Web3 provider
 w3 = Web3(Web3.HTTPProvider(os.getenv("WEB3_PROVIDER_URI")))
+<<<<<<< HEAD
 st.set_page_config(page_title="Rent a Moped Here", layout="wide")
+=======
+s3 = boto3.client('s3',
+                  aws_access_key_id= os.getenv('aws_access_key_id'),
+                  aws_secret_access_key=os.getenv('aws_secret_access_key'))
+def upload_to_s3(bucket_name, file_name, data):
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=data)
+    print(f"File {file_name} uploaded successfully to S3 bucket {bucket_name}.")
+bucket_name = 'rentalinfo'
+
+# functions for uploading and then getting data from the s3 bucket database. 
+def upload_dataframe_to_s3(bucket_name, rental_id, df):
+    file_name = f"Rental # {rental_id}.csv"
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, index=False)
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=csv_buffer.getvalue().encode())
+    print(f"File {file_name} uploaded successfully to S3 bucket {bucket_name}.")
+    
+def query_s3_data(bucket_name, file_name):
+    s3 = boto3.client('s3')
+    obj = s3.get_object(Bucket=bucket_name, Key=file_name)
+    data = obj['Body'].read()
+    df = pd.read_csv(BytesIO(data))
+    return df
+    
+>>>>>>> b98551c704ef579d574ea9ac7f056fdfb79fd5db
 
 accounts = w3.eth.accounts
 address = st.selectbox("Select account", options=accounts)
@@ -140,6 +174,7 @@ Another advantage of using smart contracts in a rental system is the ability to 
 #business layout 
 ################################################################################
 def business():
+<<<<<<< HEAD
     col1, col2 = st.columns([3,3])
     with col1:    
     
@@ -186,6 +221,56 @@ def business():
     vehicle_id = int(vehicle_index)
     
     
+=======
+    st.title('Welcome to our rental system! please add some business information')
+   
+     # Check rental status section
+    st.header("Check Rental Status")
+    vehicle_details_df = get_my_vehicles(address)
+    st.write("Here are the details of your fleet:")
+    st.write(vehicle_details_df)
+    vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
+    
+    vehicle_id = int(vehicle_index)
+    st.write("Lets add some vehicles to your virtual fleet, start by adding the information assiociated with a vehicle")
+    vin = st.text_input("Enter the VIN of the vehicle")
+    make = st.text_input("Enter the make of the vehicle")
+    model = st.text_input("Enter the model of the vehicle")
+    license_plate = st.text_input("Enter the license plate of the vehicle")
+    year = st.number_input("Enter the year of the vehicle", min_value=1900, max_value=2100)
+    stock_name = st.text_input("Enter the stock name of the vehicle")
+    daily_price = int(st.number_input("Enter the daily rental price of the vehicle"))
+    
+    if st.button("Add Vehicle"):
+        # Check if the VIN or license plate already exists in the fleet
+        # existing_vehicles = NFT_contract.functions.getFleet().call()
+        # for vehicle_id in existing_vehicles:
+        #     vehicle_details = NFT_contract.functions.getVehicleDetails(vehicle_id).call()
+        #     if vehicle_details[0] == vin or vehicle_details[3] == license_plate:
+        #         st.error("Error: A vehicle with the same VIN or license plate already exists in the fleet.")
+
+
+        # Add the vehicle to the fleet
+        tx_hash = NFT_contract.functions.createVehicleNFT(vin, make, model, license_plate, year, stock_name, daily_price).transact({'from': address, 'gas': 1000000})
+        receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+        tx_hash = receipt.transactionHash.hex()
+
+        # Get the ID of the newly minted vehicle
+        event_filter = NFT_contract.events.VehicleNFTCreated.createFilter(fromBlock="latest")
+        events = event_filter.get_all_entries()
+        new_vehicle_id = events[-1]['args']['tokenId']
+
+        # Show the user the newly minted vehicle
+        st.write("The Vehicle has been added to your fleet. Here are the details for your vehicle:")
+        supply_number = NFT_contract.functions.totalSupply().call()
+        nft_details = NFT_contract.functions.getVehicleNFTDetails(supply_number).call()
+        st.write("Vehicle details:")
+        st.write("VIN:", nft_details[0])
+        st.write("Stock Name:", nft_details[5])
+
+        st.write(f"Transaction receipt mined. The transaction hash is:{tx_hash}")
+        
+>>>>>>> b98551c704ef579d574ea9ac7f056fdfb79fd5db
         
     if st.button("Check Rental Status"):
         stock_name = get_stock_name(vehicle_id)
@@ -202,12 +287,15 @@ def business():
                 st.write(f"Renter address: {renter_address}")
                 st.write(f"Start time: {start_time}")
                 st.write(f"End time: {end_time}")
+                file_name = f"Rental # {rentalid}.csv"
+                df = query_s3_data(bucket_name, file_name)
+                st.write(df)
             else:
                 st.write(f"Vehicle number - {stock_name} - is not currently rented.")
                 st.write("Please select another vehicle.")
         except:
             st.write(f"Vehicle number - {stock_name} - is not currently rented.")
-            st.write("Please select another vehicle.")
+            st.write("Please select another vehicle. jk")
             pass
     
         # End Rental Section
@@ -321,6 +409,7 @@ def renter():
             rental_id = rental_details[0]
             rental_df = save_rental_details_to_dataframe(first_name, last_name, email, phone_number, stock_name, rental_id, start_date, end_date)
             st.write(rental_df)
+<<<<<<< HEAD
     with col2:
         st.header("5 Easy Steps To Rent a Moped:")
         st.write('Step 1: Fill in your contact details')
@@ -329,6 +418,12 @@ def renter():
         st.write("Step 4: Refer to the sidebar and select the vehicle number you want to rent")
         st.write("Input your ethereum wallet address and click pay for rental!")
         st.caption("Once you make the payment, you will see the confirmation in your wallet and the moped will be reserved for you!")
+=======
+            # Call the upload_dataframe_to_s3 function
+            upload_dataframe_to_s3('rentalinfo', rental_id, rental_df)
+            
+            
+>>>>>>> b98551c704ef579d574ea9ac7f056fdfb79fd5db
         
 def predictor():
         # load data
