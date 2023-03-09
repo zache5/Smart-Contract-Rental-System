@@ -9,7 +9,6 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from math import sqrt
-import streamlit as st
 import plotly.graph_objs as go
 import boto3
 import psycopg2 
@@ -17,11 +16,15 @@ import sys
 from io import StringIO
 from io import BytesIO
 import plotly.express as px
-from st_aggrid.grid_options_builder import GridOptionsBuilder
-from st_aggrid import GridUpdateMode, DataReturnMode
+# from st_aggrid.grid_options_builder import GridOptionsBuilder
+# from st_aggrid import GridUpdateMode, DataReturnMode
 from plotly import graph_objs as go
-from st_aggrid import AgGrid
+# from st_aggrid import AgGrid
 from prophet import Prophet
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from prophet.plot import plot_plotly
 
@@ -31,6 +34,12 @@ load_dotenv()
 ################################################################################
 # Contract Helper function:
 ################################################################################
+
+#helper code for emailing
+smtp_port = 587
+smtp_server = "smtp.gmail.com"
+email_from = "cryptojedi4949@gmail.com"
+pswd = "sqntcjhzhshyfexq"
 
 # Define and connect a new Web3 provider
 w3 = Web3(Web3.HTTPProvider(os.getenv("WEB3_PROVIDER_URI")))
@@ -290,6 +299,7 @@ def business():
 
 
                     # Add the vehicle to the fleet
+                    st.snow()
                     tx_hash = NFT_contract.functions.createVehicleNFT(vin, make, model, license_plate, year, stock_name, daily_price).transact({'from': address, 'gas': 1000000})
                     receipt = w3.eth.waitForTransactionReceipt(tx_hash)
                     tx_hash = receipt.transactionHash.hex()
@@ -333,6 +343,7 @@ def renter():
         vehicle_details_df = get_fleet_data()
         # Allow the user to select a vehicle from the availability list
         vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
+        selected_model = vehicle_details_df.loc[vehicle_index, 'Model']
         with st.form("rental_form"):
             st.write("Please enter your information below to get started.")
             # Get renter information
@@ -413,15 +424,53 @@ def renter():
                     rental_details = rental_contract.functions.getRentalDetails(token_id).call()
                     st.write("- Rental #: ", rental_details[0])
                     st.write("- Transaction hash for rental:" ,tx_hash)
+                    st.balloons()                            
                     #save renter information in dataframe 
                     rental_id = rental_details[0]
                     rental_df = save_rental_details_to_dataframe(first_name, last_name, email, phone_number, stock_name, rental_id, start_date, end_date)
-                    st.write(rental_df)
+                    # Create a message object
+                    message = MIMEMultipart()
+                    message["From"] = email_from
+                    message["To"] = email
+                    message["Subject"] = f"Rental Confirmation #{rental_id}"
+
+                    # Add message body
+                    body = f"""\
+                    Hello {first_name} {last_name}, 
+
+                    Here is a confirmation of your rental #{rental_id}. You have a pickup on {start_date} and a return on {end_date}.
+                    Your phone number is {phone_number} and we look forward to seeing you for the rental!
+                    The hash for your rental transaction is the following - {tx_hash}.
+
+                    Mahalo,
+                    Hawaiian Style Rentals"""
+
+                    message.attach(MIMEText(body, "plain"))
+
+                    # Create a secure SSL context
+                    context = ssl.create_default_context()
+
+                    try:
+                        with smtplib.SMTP(smtp_server, smtp_port) as server:
+                            server.starttls(context=context)
+                            server.login(email_from, pswd)
+                            server.sendmail(email_from, email, message.as_string())
+                        st.write(f"Email sent to {email}")
+                    except Exception as e:
+                        pass
                     upload_dataframe_to_s3('rentalinfo', rental_id, rental_df)
-                    st.balloons()
                 except ValueError as e:
                     st.warning(str(e))
-        
+    # show photo of the bike
+    if selected_model.lower() == 'buddy50' :
+        image = open('./Images/standard_bud.jpg', "rb").read()
+        st.image(image, width=800, use_column_width=False, output_format='JPEG')
+    elif selected_model.lower() == 'roughhouse50':
+        image = open('./Images/white_rh.jpg', "rb").read()
+        st.image(image, width=800, use_column_width=False, output_format='JPEG')
+    else :
+        pass    
+
         
     
 ################################################################################
