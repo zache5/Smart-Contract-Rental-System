@@ -486,7 +486,7 @@ def analysis():
         st.image(image, width=350, use_column_width=False, output_format='JPEG')
     
     st.title('Business Analysis')
-    st.subheader('Before uploading your CSV file, please make sure that the file has the column names: "Pickup Date" and "Return Date"')
+    st.subheader('Before uploading your CSV file, please make sure that your file has a "Date" column and "Count" column summing the rental pickups per day')
     st.write('Upload your csv file')
     st.write('We apologize for any inconvenience. It might take a few seconds to load, depending on your file size. We apreciate your patience')
     uploaded_file = st.file_uploader(
@@ -500,59 +500,55 @@ def analysis():
         file_container.write(df)
         # Get date range for filtering
         min_date = pd.to_datetime(df['Pickup Date']).min().date()
-        max_date = pd.to_datetime(df['Return Date']).max().date()
+        max_date = pd.to_datetime(df['Pickup Date']).max().date()
+        # enables pivoting on all columns, however need to change ag grid to allow export of pivoted/grouped data
+        # gb = GridOptionsBuilder.from_dataframe(df)
+        # gb.configure_selection(selection_mode="multiple", use_checkbox=True)
+        # gb.configure_side_bar()
+        # gridOptions = gb.build()
+        # response = AgGrid(
+        # df,
+        # gridOptions=gridOptions,
+        # enable_enterprise_modules=True,
+        # update_mode=GridUpdateMode.MODEL_CHANGED,
+        # data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+        # fit_columns_on_grid_load=False,
+        # )
+        # df = pd.DataFrame(response["selected_rows"])
+        # st.subheader("Filtered data will appear below ")
+        # st.text("")
+        # st.table(df)
+        # st.text("")
+        # c29, c30, c31 = st.columns([1, 1, 2])
+        # Filter the dataframe by selected date range for pickups and returns
         start_date = st.date_input('Select start date:', value=min_date, min_value=min_date, max_value=max_date)
         end_date = st.date_input('Select end date:', value=max_date, min_value=min_date, max_value=max_date)
-        # Filter the dataframe by selected date range for pickups and returns
-        pickups_df = df[(pd.to_datetime(df['Pickup Date']).dt.date >= start_date) & (pd.to_datetime(df['Pickup Date']).dt.date <= end_date)]
-        returns_df = df[(pd.to_datetime(df['Return Date']).dt.date >= start_date) & (pd.to_datetime(df['Return Date']).dt.date <= end_date)]
+        # pickups_df = df[(pd.to_datetime(df['Pickup Date']).dt.date >= start_date) & (pd.to_datetime(df['Pickup Date']).dt.date <= end_date)]
+        # returns_df = df[(pd.to_datetime(df['Pickup Date']).dt.date >= start_date) & (pd.to_datetime(df['Pickup Date']).dt.date <= end_date)]
         # Calculate counts for pickups and returns for each day in the range
-        date_counts = []
-        for date in pd.date_range(start_date, end_date):
-            pickups_count = pickups_df[(pd.to_datetime(pickups_df['Pickup Date']).dt.date == date)].shape[0]
-            returns_count = returns_df[(pd.to_datetime(returns_df['Return Date']).dt.date == date)].shape[0]
-            date_counts.append((date, pickups_count, returns_count))
+        # date_counts = []
+        # for date in pd.date_range(start_date, end_date):
+        #     pickups_count = pickups_df[(pd.to_datetime(pickups_df['Pickup Date']).dt.date == date)].shape[0]
+        #     # returns_count = returns_df[(pd.to_datetime(returns_df['Pickup Date']).dt.date == date)].shape[0]
+        #     date_counts.append((date, pickups_count))
         # # Create a dataframe with the counts for each day in the range
-        counts_df = pd.DataFrame(date_counts, columns=['Date', 'Pickups', 'Returns'])
+        # counts_df = pd.DataFrame(date_counts, columns=['Date', 'Pickups'])
         # st.subheader(f"Moped counts for selected date range")
         # st.write(counts_df)
         # Display the chart
-        fig = px.line(counts_df, x='Date', y=['Pickups', 'Returns'], labels={'x':'Date', 'y':'Count'})
+        fig = px.line(df, x='Pickup Date', y='count', labels={'x':'Date', 'y':'Count'})
         st.plotly_chart(fig)
-        gb = GridOptionsBuilder.from_dataframe(df)
-        # enables pivoting on all columns, however need to change ag grid to allow export of pivoted/grouped data
-        gb.configure_selection(selection_mode="multiple", use_checkbox=True)
-        gb.configure_side_bar()
-        gridOptions = gb.build()
-        response = AgGrid(
-        df,
-        gridOptions=gridOptions,
-        enable_enterprise_modules=True,
-        update_mode=GridUpdateMode.MODEL_CHANGED,
-        data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
-        fit_columns_on_grid_load=False,
-        )
-        df = pd.DataFrame(response["selected_rows"])
-        st.subheader("Filtered data will appear below ")
-        st.text("")
-        st.table(df)
-        st.text("")
-        c29, c30, c31 = st.columns([1, 1, 2])
+        
         if st.button('Would you like to run a forecast?'):
             df = pd.read_csv(uploaded_file)
             uploaded_file.seek(0)
             file_container.write(df)
-            df = df.drop(columns=['#','Created At','Return Date', 'License Plate', 'Odometer at Pickup', 'Odometer at Return', 'Total Days'])
             df.dropna(inplace=True)
-            # Convert columns to datetime
-            df['Pickup Date'] = pd.to_datetime(df['Pickup Date'])
-            # Create new column
-            df['Pickup Count'] = df.groupby(df['Pickup Date'].dt.date)['Pickup Date'].transform('count')
             # Sorting by Pickup Date
             df.sort_values('Pickup Date', inplace=True)
             # Preparing to fit Prophet
-            df_train = df[['Pickup Date','Pickup Count']]
-            df_train = df.rename(columns={'Pickup Date': 'ds', 'Pickup Count': 'y'})
+            df_train = df[['Pickup Date','count']]
+            df_train = df.rename(columns={'Pickup Date': 'ds', 'count': 'y'})
             # Initialize the model
             model = Prophet()
             # Fitting the model

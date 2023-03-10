@@ -4,3 +4,9 @@ backgroundColor="#627185"
 secondaryBackgroundColor="#2c2c33"
 textColor="#fbfbfb"
 font="serif"
+
+[global]
+developmentMode = false
+
+[server]
+port = 8501
