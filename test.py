@@ -16,10 +16,10 @@ import sys
 from io import StringIO
 from io import BytesIO
 import plotly.express as px
-# from st_aggrid.grid_options_builder import GridOptionsBuilder
-# from st_aggrid import GridUpdateMode, DataReturnMode
+from st_aggrid.grid_options_builder import GridOptionsBuilder
+from st_aggrid import GridUpdateMode, DataReturnMode
 from plotly import graph_objs as go
-# from st_aggrid import AgGrid
+from st_aggrid import AgGrid
 from prophet import Prophet
 import smtplib
 import ssl
@@ -176,13 +176,11 @@ def save_rental_details_to_dataframe(first_name, last_name, email, phone_number,
 ################################################################################
 def intro():
     st.title("Welcome to The Smart Contract Rental System!")
-    st.write("Welcome to our revolutionary new platform for renting mopeds! We're excited to introduce a cutting-edge solution that allows businesses to quickly and easily list their mopeds for rent, and renters to book directly from them. Our platform is powered by smart contract technology and blockchain, ensuring a fully decentralized, trustless transaction that's executed entirely through code. With our platform, business owners can easily add their stock of mopeds to our site and renters can browse and book rentals directly. Whether you're a business owner looking to monetize your mopeds or a renter in search of a hassle-free rental experience, our platform has everything you need. Simply head to the business tab to add your stock or the renter tab to browse rentals and start renting today!")
+    st.write("Welcome to our revolutionary new platform for renting vehicles! We're excited to introduce a cutting-edge solution that allows businesses to quickly and easily list their vehicles for rent, and renters to book directly from them. Our platform is powered by smart contract technology and blockchain, ensuring a fully decentralized, trustless transaction that's executed entirely through code. With our platform, business owners can easily add their stock of vehicles to our site and renters can browse and book rentals directly. Whether you're a business owner looking to monetize your vehicles or a renter in search of a hassle-free rental experience, our platform has everything you need. Simply head to the business tab to add your stock or the renter tab to browse rentals and start renting today!")
     col1, col2 = st.columns([3,3])
     with col1:
-        image = open("./Images/front_page.jpg", "rb").read()
-        st.caption('Come Ride around oahu and experience the island on two wheels!')
+        image = open("./Images/ai_image.jpg", "rb").read()
         st.image(image, width=650, use_column_width=False, output_format='JPEG')
-        st.caption('Photo is taken by Makapuu lighthouse beach park.')
         st.title("What is a smart contract and Why are we using this technology?")
         st.write("""A smart contract is a self-executing computer program that automatically enforces the rules and regulations of an agreement. It allows parties to enter into a contract without the need for intermediaries such as lawyers or banks, reducing the time and costs involved in creating and enforcing traditional contracts.
 In the context of a rental system, a smart contract can be used to automate the process of creating, signing, and enforcing rental agreements between parties. 
@@ -190,15 +188,15 @@ In the context of a rental system, a smart contract can be used to automate the 
                                 
                                 
 By using a smart contract, rental terms can be specified in code and executed automatically when certain conditions are met.
-One advantage of using smart contracts in a rental system is the ability to ensure that both parties adhere to the terms of the agreement. For example, the smart contract can hold a renter's security deposit in escrow and automatically release it back to the renter once the rental period has ended and the moped is returned undamaged. This ensures that the rental company is compensated for any damages, while also protecting the renter from being unfairly charged for damages they did not cause.
+One advantage of using smart contracts in a rental system is the ability to ensure that both parties adhere to the terms of the agreement. For example, the smart contract can hold a renter's security deposit in escrow and automatically release it back to the renter once the rental period has ended and the vehicle is returned undamaged. This ensures that the rental company is compensated for any damages, while also protecting the renter from being unfairly charged for damages they did not cause.
 
 
 
 Another advantage of using smart contracts in a rental system is the ability to use non-fungible tokens (NFTs) to represent ownership of the rented items. NFTs are unique digital assets that are verified on a blockchain network and can be used to represent ownership of physical or digital assets. By using NFTs to represent ownership of rented items, it becomes easier to track ownership and transfer of the items between parties. This can help prevent disputes and simplify the process of returning rented items at the end of the rental period.""")
     with col2:
         st.title("Why Should You Use This Platform?")
-        st.write("When it comes to renting a moped, there are many benefits to using a platform that utilizes smart contract and blockchain technology. With this advanced technology, there is no need to rely on intermediaries, which means the transaction process is seamless and trustless. This also means the transaction is fast, efficient, and completely transparent. By using our platform, you can have peace of mind knowing that your transaction is secure and your personal information is protected. Plus, with a 10% discount compared to renting in person, you can save money while enjoying the convenience of renting from the comfort of your own home. So why settle for a traditional rental process when you can experience the future of renting with our smart contract and blockchain technology platform?")   
-        image = open("./Images/contract.jpg", "rb").read()
+        st.write("When it comes to renting a vehicle, there are many benefits to using a platform that utilizes smart contract and blockchain technology. With this advanced technology, there is no need to rely on intermediaries, which means the transaction process is seamless and trustless. This also means the transaction is fast, efficient, and completely transparent. By using our platform, you can have peace of mind knowing that your transaction is secure and your personal information is protected. Plus, with a 10% discount compared to renting in person, you can save money while enjoying the convenience of renting from the comfort of your own home. So why settle for a traditional rental process when you can experience the future of renting with our smart contract and blockchain technology platform?")   
+        image = open("./Images/smart-contract-security.jpg", "rb").read()
         st.image(image, width=800, use_column_width=False, output_format='JPEG')
         st.title('Subscribe to stay updated, leave us a message!')
         contact_form = """
@@ -278,7 +276,7 @@ def business():
 
                 
         with st.form("add_vehicle_form"):
-            st.title('Add The Moped Vehicle Information Below!')
+            st.title('Add The Vehicle Information Below!')
             st.write("Lets add some vehicles to your virtual fleet. Start by adding the information assiociated with a vehicle")
             vin = st.text_input("Enter the VIN of the vehicle")
             make = st.text_input("Enter the make of the vehicle")
@@ -328,8 +326,8 @@ def business():
             pass
         
         st.header("3 Easy Steps To Manage and Add Vehicles to The Fleet:")
-        st.write("Step 1: Add in the information about the moped you want to add in the respective text box and click the 'Add Vehicle' button.")
-        st.write("Step 2: View the details of the available mopeds in the top right corner and view your whole fleet right below that!")
+        st.write("Step 1: Add in the information about the vehicle you want to add in the respective text box and click the 'Add Vehicle' button.")
+        st.write("Step 2: View the details of the available vehicle in the top right corner and view your whole fleet right below that!")
         st.write("Step 3: At the top of the page, view the information about the renter if your vehicle is being rented, and once it gets returned safely on the designated return date, click the 'End Rental' button receive immediate payment!")   
         
 ################################################################################
@@ -339,7 +337,7 @@ def business():
 def renter():
     col1, col2 = st.columns([3,3])
     with col1:
-        st.title("Rent a Moped Here!")
+        st.title("Rent a vehicle Here!")
         vehicle_details_df = get_fleet_data()
         # Allow the user to select a vehicle from the availability list
         vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
@@ -381,19 +379,19 @@ def renter():
         st.header("Check Availability below!")
         onrent, available_df = get_rental_status(vehicle_details_df)
         st.write(available_df)
-        st.header("5 Easy Steps To Rent a Moped:")
-        st.write("Step 1: View the available Mopeds to rent from and select the vehicle number you want to rent")
+        st.header("5 Easy Steps To Rent a Vehicle:")
+        st.write("Step 1: View the available 6 to rent from and select the vehicle number you want to rent")
         st.write('Step 2: Fill in your contact details')
         st.write("Step 3: Select the start and end date for your rental")
         st.write("Step 4: Sumbit the form ensuring that all of your information was entered correctly")
-        st.write("Step 5: View the price in ETH that you are going to pay and click the 'Pay for Rental' button to rent the moped!")
+        st.write("Step 5: View the price in ETH that you are going to pay and click the 'Pay for Rental' button to rent the vehicle!")
         
-        rental_days = (end_unix-start_unix)/86400
+        rental_days = int((end_unix-start_unix)/86400)
         daily_price= NFT_contract.functions.dailyPricevalue(vehicle_index).call()
         rental_cost = int(rental_days * daily_price)
         # Convert eth amount to Wei
         ether = w3.fromWei(rental_cost, "ether")
-        st.subheader(f'You can expect to pay {ether} ETH for the rental for {rental_days} days')
+        st.subheader(f'You can expect to pay {ether: .4} ETH for the rental for {rental_days} days')
         if st.button("Pay for Rental"):
             # Check if the NFT is already rented
             is_on_rent=[]
@@ -488,12 +486,13 @@ def analysis():
         st.image(image, width=350, use_column_width=False, output_format='JPEG')
     
     st.title('Business Analysis')
-    st.subheader('Before uploading your CSV file, please make sure that the file has columns name such as "Pickup Date" and "Return Date"')
+    st.subheader('Before uploading your CSV file, please make sure that the file has the column names: "Pickup Date" and "Return Date"')
     st.write('Upload your csv file')
     st.write('We apologize for any inconvenience. It might take a few seconds to load, depending on your file size. We apreciate your patience')
     uploaded_file = st.file_uploader(
         "",
         key="1")
+
     if uploaded_file is not None:
         file_container = st.expander("Check your uploaded .csv")
         df = pd.read_csv(uploaded_file)
@@ -539,7 +538,7 @@ def analysis():
         st.table(df)
         st.text("")
         c29, c30, c31 = st.columns([1, 1, 2])
-        if st.button('Would you like to run a forecats?'):
+        if st.button('Would you like to run a forecast?'):
             df = pd.read_csv(uploaded_file)
             uploaded_file.seek(0)
             file_container.write(df)
