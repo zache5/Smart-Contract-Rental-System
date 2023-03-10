@@ -3,9 +3,12 @@
 
 # Project Description
 We created a project that is a rental platform that utilizes blockchain technology and smart contracts to enable business owners to offer their vehicles for rent to interested parties. By minting vehicles onto the blockchain, the platform eliminates the need for intermediaries to control transactions, ensuring security and transparency. The self-executing smart contracts automatically enforce the rules and regulations specified within the contract, ensuring that transactions are completed according to agreed-upon terms. As a decentralized and immutable ledger, the blockchain provides a secure and transparent storage system for data, further enhancing the platform's security and trustworthiness. This system differs from traditional rental platforms as it eliminates the need for third-party involvement, making the rental process more efficient, transparent, and secure. 
+
 All user data, including rental information, is stored securely in an AWS S3, ensuring the platform's privacy and security. The platform utilizes two smart contracts to facilitate the rental process. The first contract is the rental contract, which links to the vehicle contract to access available vehicles and allows users to set rental details. The rental contract also includes a function for returning rental payments in the event of a cancellation.
 The second contract is the vehicle NFT contract, which stores vehicle details on-chain, such as the rental price and a digital representation of the rental fleet. By utilizing NFTs, the platform ensures the uniqueness and authenticity of each vehicle rental, enhancing the overall transparency and trustworthiness of the platform.
+
 In addition to the rental platform's innovative use of blockchain technology and smart contracts, the website offers an intuitive interface that allows users to interact easily with the contracts. Through the streamlit interface, users can mint vehicles onto the blockchain, view available vehicles, and browse rental rates. The website also features an analysis section incorporating a machine learning model, providing users with valuable insights into the rental market.
+
 
 Feel free to contact the developers on the Home Page and give us your feedback for things to improve in the future, 
 
