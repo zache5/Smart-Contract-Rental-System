@@ -1,4 +1,4 @@
-sonschema==3.2.0
+jsonschema==3.2.0
 pandas==1.3.5
 web3==5.17.0
 pathlib==1.0.1
