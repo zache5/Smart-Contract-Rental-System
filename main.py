@@ -197,7 +197,7 @@ Another advantage of using smart contracts in a rental system is the ability to 
         st.title("Why Should You Use This Platform?")
         st.write("When it comes to renting a vehicle, there are many benefits to using a platform that utilizes smart contract and blockchain technology. With this advanced technology, there is no need to rely on intermediaries, which means the transaction process is seamless and trustless. This also means the transaction is fast, efficient, and completely transparent. By using our platform, you can have peace of mind knowing that your transaction is secure and your personal information is protected. Plus, with a 10% discount compared to renting in person, you can save money while enjoying the convenience of renting from the comfort of your own home. So why settle for a traditional rental process when you can experience the future of renting with our smart contract and blockchain technology platform?")   
         image = open("./Images/smart-contract-security.jpg", "rb").read()
-        st.image(image, width=800, use_column_width=False, output_format='JPEG')
+        st.image(image, width=700, use_column_width=False, output_format='JPEG')
         st.title('Subscribe to stay updated, leave us a message!')
         contact_form = """
         <form action="https://formsubmit.co/zacheras@gmail.com" method="POST">
@@ -338,10 +338,16 @@ def renter():
     col1, col2 = st.columns([3,3])
     with col1:
         st.title("Rent a vehicle Here!")
-        vehicle_details_df = get_fleet_data()
-        # Allow the user to select a vehicle from the availability list
-        vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
-        selected_model = vehicle_details_df.loc[vehicle_index, 'Model']
+        try:
+            
+            vehicle_details_df = get_fleet_data()
+            # Allow the user to select a vehicle from the availability list
+            vehicle_index = st.selectbox("Select a vehicle:", vehicle_details_df.index)
+            selected_model = vehicle_details_df.loc[vehicle_index, 'Model']
+        except :
+            st.warning('No vehciles are minted yet. Please mint some vehicles to get started!')
+            return
+        
         with st.form("rental_form"):
             st.write("Please enter your information below to get started.")
             # Get renter information
@@ -391,7 +397,7 @@ def renter():
         rental_cost = int(rental_days * daily_price)
         # Convert eth amount to Wei
         ether = w3.fromWei(rental_cost, "ether")
-        st.subheader(f'You can expect to pay {ether: .4} ETH for the rental for {rental_days} days')
+        st.subheader(f'You can expect to pay {ether} ETH for the rental for {rental_days} days')
         if st.button("Pay for Rental"):
             # Check if the NFT is already rented
             is_on_rent=[]
@@ -486,7 +492,7 @@ def analysis():
         st.image(image, width=350, use_column_width=False, output_format='JPEG')
     
     st.title('Business Analysis')
-    st.subheader('Before uploading your CSV file, please make sure that your file has a "Date" column and "Count" column summing the rental pickups per day')
+    st.subheader('Before uploading your CSV file, please make sure that your file has a "Date" column and a "Count" column summing the rental pickups per day')
     st.write('Upload your csv file')
     st.write('We apologize for any inconvenience. It might take a few seconds to load, depending on your file size. We apreciate your patience')
     uploaded_file = st.file_uploader(
