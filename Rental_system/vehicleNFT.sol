@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 contract VehicleNFT is ERC721 {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
-
     struct Vehicle {
         string VIN;
         string make;
@@ -84,6 +83,14 @@ contract VehicleNFT is ERC721 {
     function totalSupply() public view returns (uint256) {
         return _tokenIds.current();
     }
+    function dailyPricevalue(uint256 tokenId) public view returns (uint256) {
+    // retrieve the Vehicle struct for the specified token ID
+        Vehicle memory vehicle = _tokenDetails[tokenId];
+
+    // return the dailyPrice field of the Vehicle struct
+    return vehicle.dailyPrice;
+    }
+
     function tokenByIndex(uint256 index) public view returns (uint256) {
         require(index < totalSupply(), "VehicleNFT: Invalid index");
         return index;
@@ -102,4 +109,3 @@ contract VehicleNFT is ERC721 {
         revert("VehicleNFT: Index out of bounds");
     }
 }
-
