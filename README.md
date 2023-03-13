@@ -28,7 +28,7 @@ To get your `dev` environment setup do the following in your command line:
 ![conda](./Images/anaconda_dev_env.png)
 
 Once you have cloned the repo and have a `dev` or similar env with python 3.7 or higher the next step is to make sure you have the packages installed locally. Navigate to the newly cloned repo and make sure you are in the right directory. 
-Then type `pip install requirements.txt`, this will install any necessary packages to your env. 
+Then type `pip install -r requirements.txt`, this will install any necessary packages to your env. 
 
 *NOTE if you get errors installing requirements use conda install -c conda-forge `package name`"*
 
